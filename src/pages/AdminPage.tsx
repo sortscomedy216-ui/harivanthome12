@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePendingProviders, useAdminStats } from "@/hooks/useProviders";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,20 +27,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-// Mock data
-const mockPendingProviders = [
-  { id: "p1", name: "विकास सिंह", phone: "+91 98765 12345", category: "electrician", experience: 5, location: "रोहिणी, दिल्ली", createdAt: "2 घंटे पहले" },
-  { id: "p2", name: "संजय कुमार", phone: "+91 87654 32109", category: "plumber", experience: 8, location: "द्वारका, दिल्ली", createdAt: "5 घंटे पहले" },
-  { id: "p3", name: "मनोज यादव", phone: "+91 76543 21098", category: "carpenter", experience: 3, location: "करोल बाग, दिल्ली", createdAt: "1 दिन पहले" },
-];
-
-const mockStats = {
-  totalUsers: 1250,
-  totalProviders: 85,
-  pendingApprovals: 12,
-  activeToday: 45,
-};
-
 const categoryNames: Record<string, { hi: string; en: string }> = {
   plumber: { hi: "प्लंबर", en: "Plumber" },
   electrician: { hi: "इलेक्ट्रीशियन", en: "Electrician" },
@@ -52,38 +41,81 @@ const categoryNames: Record<string, { hi: string; en: string }> = {
 const AdminPage = () => {
   const navigate = useNavigate();
   const { language, t } = useLanguage();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user, isAdmin, loading: authLoading, signInWithEmail, signOut } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [pendingProviders, setPendingProviders] = useState(mockPendingProviders);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const { data: pendingProviders = [], refetch: refetchPending } = usePendingProviders();
+  const { data: stats, refetch: refetchStats } = useAdminStats();
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login - in production, this would verify with Firebase
-    if (email === "admin@harivant.com" && password === "admin123") {
-      setIsLoggedIn(true);
+    setIsLoggingIn(true);
+    
+    try {
+      const { error } = await signInWithEmail(email, password);
+      if (error) throw error;
       toast.success(language === "hi" ? "लॉगिन सफल!" : "Login successful!");
-    } else {
-      toast.error(language === "hi" ? "गलत क्रेडेंशियल्स" : "Invalid credentials");
+    } catch (error: any) {
+      toast.error(error.message || (language === "hi" ? "गलत क्रेडेंशियल्स" : "Invalid credentials"));
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  const handleApprove = (providerId: string) => {
-    setPendingProviders((prev) => prev.filter((p) => p.id !== providerId));
+  const handleApprove = async (providerId: string) => {
+    const { error } = await supabase
+      .from("service_providers")
+      .update({ status: "approved" })
+      .eq("id", providerId);
+
+    if (error) {
+      toast.error(language === "hi" ? "त्रुटि हुई" : "Error occurred");
+      return;
+    }
+
     toast.success(language === "hi" ? "सेवा प्रदाता अनुमोदित!" : "Provider approved!");
+    refetchPending();
+    refetchStats();
   };
 
-  const handleReject = (providerId: string) => {
-    setPendingProviders((prev) => prev.filter((p) => p.id !== providerId));
+  const handleReject = async (providerId: string) => {
+    const { error } = await supabase
+      .from("service_providers")
+      .update({ status: "rejected" })
+      .eq("id", providerId);
+
+    if (error) {
+      toast.error(language === "hi" ? "त्रुटि हुई" : "Error occurred");
+      return;
+    }
+
     toast.info(language === "hi" ? "सेवा प्रदाता अस्वीकृत" : "Provider rejected");
+    refetchPending();
+    refetchStats();
   };
 
   const filteredProviders = pendingProviders.filter((p) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (!isLoggedIn) {
+  // Show loading
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full"
+        />
+      </div>
+    );
+  }
+
+  // Show login if not authenticated or not admin
+  if (!user || !isAdmin) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         {/* Header */}
@@ -116,13 +148,21 @@ const AdminPage = () => {
               </div>
             </div>
 
+            {user && !isAdmin && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                {language === "hi" 
+                  ? "आपके पास एडमिन अधिकार नहीं हैं।"
+                  : "You don't have admin privileges."}
+              </div>
+            )}
+
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <Label htmlFor="email">{t("auth.email")}</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@harivant.com"
+                  placeholder="admin@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="mt-1.5"
@@ -143,13 +183,21 @@ const AdminPage = () => {
                 />
               </div>
 
-              <Button type="submit" className="w-full h-11 gradient-primary">
-                {t("auth.login")}
+              <Button type="submit" className="w-full h-11 gradient-primary" disabled={isLoggingIn}>
+                {isLoggingIn ? (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full"
+                  />
+                ) : (
+                  t("auth.login")
+                )}
               </Button>
             </form>
 
             <p className="text-xs text-center text-muted-foreground mt-4">
-              Demo: admin@harivant.com / admin123
+              {language === "hi" ? "एडमिन खाते से लॉगिन करें" : "Login with admin account"}
             </p>
           </Card>
         </div>
@@ -184,7 +232,7 @@ const AdminPage = () => {
             variant="ghost"
             size="sm"
             className="text-primary-foreground hover:bg-primary-foreground/10"
-            onClick={() => setIsLoggedIn(false)}
+            onClick={signOut}
           >
             {t("auth.logout")}
           </Button>
@@ -196,23 +244,11 @@ const AdminPage = () => {
         <div className="grid grid-cols-2 gap-3">
           <Card className="p-4 shadow-card">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Users className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{mockStats.totalUsers}</p>
-                <p className="text-xs text-muted-foreground">{t("admin.totalUsers")}</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-4 shadow-card">
-            <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
                 <UserCheck className="w-5 h-5 text-secondary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{mockStats.totalProviders}</p>
+                <p className="text-2xl font-bold">{stats?.totalProviders || 0}</p>
                 <p className="text-xs text-muted-foreground">{t("admin.totalProviders")}</p>
               </div>
             </div>
@@ -224,20 +260,8 @@ const AdminPage = () => {
                 <Clock className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{mockStats.pendingApprovals}</p>
+                <p className="text-2xl font-bold">{stats?.pendingApprovals || 0}</p>
                 <p className="text-xs text-muted-foreground">{t("admin.pending")}</p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-4 shadow-card">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{mockStats.activeToday}</p>
-                <p className="text-xs text-muted-foreground">{language === "hi" ? "आज एक्टिव" : "Active Today"}</p>
               </div>
             </div>
           </Card>
@@ -250,7 +274,7 @@ const AdminPage = () => {
           <TabsList className="w-full">
             <TabsTrigger value="pending" className="flex-1">
               <Clock className="w-4 h-4 mr-2" />
-              {t("admin.pending")}
+              {t("admin.pending")} ({pendingProviders.length})
             </TabsTrigger>
             <TabsTrigger value="approved" className="flex-1">
               <CheckCircle2 className="w-4 h-4 mr-2" />
@@ -300,7 +324,9 @@ const AdminPage = () => {
                                 {categoryNames[provider.category]?.[language] || provider.category}
                               </p>
                             </div>
-                            <span className="text-xs text-muted-foreground">{provider.createdAt}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(provider.created_at).toLocaleDateString()}
+                            </span>
                           </div>
 
                           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
@@ -308,10 +334,12 @@ const AdminPage = () => {
                               <Phone className="w-3 h-3" />
                               {provider.phone}
                             </div>
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {provider.location}
-                            </div>
+                            {provider.location && (
+                              <div className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                {provider.location}
+                              </div>
+                            )}
                           </div>
 
                           <div className="flex gap-2 mt-3">
@@ -332,9 +360,6 @@ const AdminPage = () => {
                               <XCircle className="w-4 h-4 mr-1" />
                               {t("admin.reject")}
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-9 px-3">
-                              <Eye className="w-4 h-4" />
-                            </Button>
                           </div>
                         </div>
                       </div>
@@ -349,7 +374,9 @@ const AdminPage = () => {
             <div className="text-center py-12">
               <UserCheck className="w-12 h-12 text-primary mx-auto mb-4" />
               <p className="text-muted-foreground">
-                {language === "hi" ? "85 अनुमोदित सेवा प्रदाता" : "85 approved service providers"}
+                {language === "hi" 
+                  ? `${stats?.totalProviders || 0} अनुमोदित सेवा प्रदाता`
+                  : `${stats?.totalProviders || 0} approved service providers`}
               </p>
             </div>
           </TabsContent>

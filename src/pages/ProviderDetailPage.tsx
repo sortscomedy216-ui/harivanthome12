@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useProvider, useProviderReviews } from "@/hooks/useProviders";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -9,36 +9,11 @@ import {
   Star,
   Phone,
   MapPin,
-  Clock,
   CheckCircle2,
-  MessageSquare,
   Share2,
   Heart,
-  Shield,
 } from "lucide-react";
-
-// Mock provider data
-const mockProviderDetails = {
-  "1": {
-    id: "1",
-    name: "राजेश कुमार",
-    category: "plumber",
-    rating: 4.8,
-    reviews: 156,
-    experience: 8,
-    available: true,
-    location: "राजौरी गार्डन, दिल्ली",
-    phone: "+91 98765 43210",
-    price: "₹300/hr",
-    verified: true,
-    skills: ["पाइप फिटिंग", "लीकेज रिपेयर", "बाथरूम फिटिंग", "वॉटर हीटर"],
-    about: "8 साल के अनुभव के साथ प्रोफेशनल प्लंबर। सभी प्रकार की प्लंबिंग सेवाएं उपलब्ध।",
-    recentReviews: [
-      { id: "r1", name: "अंकित शर्मा", rating: 5, comment: "बहुत अच्छा काम किया। समय पर आए और जल्दी काम पूरा किया।", date: "2 दिन पहले" },
-      { id: "r2", name: "प्रिया गुप्ता", rating: 4, comment: "अच्छी सर्विस। थोड़ा महंगा लेकिन काम quality का था।", date: "1 हफ्ता पहले" },
-    ],
-  },
-};
+import { useState } from "react";
 
 const ProviderDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -46,11 +21,39 @@ const ProviderDetailPage = () => {
   const { language, t } = useLanguage();
   const [isFavorite, setIsFavorite] = useState(false);
 
-  const provider = mockProviderDetails["1"]; // Using mock data
+  const { data: provider, isLoading } = useProvider(id || "");
+  const { data: reviews = [] } = useProviderReviews(id || "");
 
   const handleCall = () => {
-    window.location.href = `tel:${provider.phone}`;
+    if (provider?.phone) {
+      window.location.href = `tel:${provider.phone}`;
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full"
+        />
+      </div>
+    );
+  }
+
+  if (!provider) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+        <p className="text-muted-foreground">
+          {language === "hi" ? "सेवा प्रदाता नहीं मिला" : "Provider not found"}
+        </p>
+        <Button onClick={() => navigate(-1)} className="mt-4">
+          {language === "hi" ? "वापस जाएं" : "Go Back"}
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -89,8 +92,12 @@ const ProviderDetailPage = () => {
       <div className="px-4 -mt-16 relative z-10">
         <Card className="p-5 shadow-elevated">
           <div className="flex gap-4">
-            <div className="w-24 h-24 rounded-2xl bg-muted flex items-center justify-center text-5xl shrink-0">
-              👤
+            <div className="w-24 h-24 rounded-2xl bg-muted flex items-center justify-center text-5xl shrink-0 overflow-hidden">
+              {provider.photo_url ? (
+                <img src={provider.photo_url} alt={provider.name} className="w-full h-full object-cover" />
+              ) : (
+                "👤"
+              )}
             </div>
             <div className="flex-1">
               <div className="flex items-start justify-between">
@@ -119,9 +126,9 @@ const ProviderDetailPage = () => {
               <div className="flex items-center gap-4 mt-3">
                 <div className="flex items-center gap-1">
                   <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-                  <span className="font-semibold">{provider.rating}</span>
+                  <span className="font-semibold">{Number(provider.rating).toFixed(1)}</span>
                   <span className="text-sm text-muted-foreground">
-                    ({provider.reviews} {language === "hi" ? "रिव्यू" : "reviews"})
+                    ({provider.review_count} {language === "hi" ? "रिव्यू" : "reviews"})
                   </span>
                 </div>
               </div>
@@ -135,11 +142,13 @@ const ProviderDetailPage = () => {
               <div className="text-xs text-muted-foreground">{t("provider.years")} {t("provider.experience")}</div>
             </div>
             <div className="text-center border-x border-border">
-              <div className="text-2xl font-bold text-primary">{provider.reviews}</div>
+              <div className="text-2xl font-bold text-primary">{provider.review_count}</div>
               <div className="text-xs text-muted-foreground">{language === "hi" ? "रिव्यू" : "Reviews"}</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary">{provider.price}</div>
+              <div className="text-2xl font-bold text-primary">
+                {provider.price_per_hour > 0 ? `₹${provider.price_per_hour}` : "-"}
+              </div>
               <div className="text-xs text-muted-foreground">{language === "hi" ? "प्रति घंटा" : "per hour"}</div>
             </div>
           </div>
@@ -149,15 +158,17 @@ const ProviderDetailPage = () => {
       {/* Location & Contact */}
       <div className="px-4 mt-4">
         <Card className="p-4 shadow-card">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <MapPin className="w-5 h-5 text-primary" />
+          {provider.location && (
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <MapPin className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{language === "hi" ? "लोकेशन" : "Location"}</p>
+                <p className="font-medium">{provider.location}, {provider.city}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{language === "hi" ? "लोकेशन" : "Location"}</p>
-              <p className="font-medium">{provider.location}</p>
-            </div>
-          </div>
+          )}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center">
               <Phone className="w-5 h-5 text-secondary" />
@@ -171,62 +182,69 @@ const ProviderDetailPage = () => {
       </div>
 
       {/* About */}
-      <div className="px-4 mt-4">
-        <Card className="p-4 shadow-card">
-          <h3 className="font-semibold mb-2">{language === "hi" ? "परिचय" : "About"}</h3>
-          <p className="text-muted-foreground text-sm">{provider.about}</p>
-        </Card>
-      </div>
+      {provider.about && (
+        <div className="px-4 mt-4">
+          <Card className="p-4 shadow-card">
+            <h3 className="font-semibold mb-2">{language === "hi" ? "परिचय" : "About"}</h3>
+            <p className="text-muted-foreground text-sm">{provider.about}</p>
+          </Card>
+        </div>
+      )}
 
       {/* Skills */}
-      <div className="px-4 mt-4">
-        <Card className="p-4 shadow-card">
-          <h3 className="font-semibold mb-3">{language === "hi" ? "कौशल" : "Skills"}</h3>
-          <div className="flex flex-wrap gap-2">
-            {provider.skills.map((skill, index) => (
-              <span
-                key={index}
-                className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm"
-              >
-                {skill}
-              </span>
-            ))}
-          </div>
-        </Card>
-      </div>
+      {provider.skills && provider.skills.length > 0 && (
+        <div className="px-4 mt-4">
+          <Card className="p-4 shadow-card">
+            <h3 className="font-semibold mb-3">{language === "hi" ? "कौशल" : "Skills"}</h3>
+            <div className="flex flex-wrap gap-2">
+              {provider.skills.map((skill, index) => (
+                <span
+                  key={index}
+                  className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm"
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Reviews */}
-      <div className="px-4 mt-4">
-        <Card className="p-4 shadow-card">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">{language === "hi" ? "हाल के रिव्यू" : "Recent Reviews"}</h3>
-            <Button variant="ghost" size="sm" className="text-primary">
-              {t("home.viewAll")}
-            </Button>
-          </div>
-          <div className="space-y-4">
-            {provider.recentReviews.map((review) => (
-              <div key={review.id} className="pb-4 border-b border-border last:border-0 last:pb-0">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">{review.name}</span>
-                  <span className="text-xs text-muted-foreground">{review.date}</span>
+      {reviews.length > 0 && (
+        <div className="px-4 mt-4">
+          <Card className="p-4 shadow-card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">{language === "hi" ? "रिव्यू" : "Reviews"}</h3>
+            </div>
+            <div className="space-y-4">
+              {reviews.slice(0, 5).map((review: any) => (
+                <div key={review.id} className="pb-4 border-b border-border last:border-0 last:pb-0">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium">{review.profiles?.name || "User"}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(review.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 mb-2">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`w-4 h-4 ${
+                          i < review.rating ? "text-amber-500 fill-amber-500" : "text-gray-300"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  {review.comment && (
+                    <p className="text-sm text-muted-foreground">{review.comment}</p>
+                  )}
                 </div>
-                <div className="flex items-center gap-1 mb-2">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-4 h-4 ${
-                        i < review.rating ? "text-amber-500 fill-amber-500" : "text-gray-300"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <p className="text-sm text-muted-foreground">{review.comment}</p>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Bottom CTA */}
       <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 safe-bottom">

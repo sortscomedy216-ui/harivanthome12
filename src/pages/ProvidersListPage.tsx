@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useProviders } from "@/hooks/useProviders";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,10 +19,11 @@ import {
   Star,
   Phone,
   MapPin,
-  Filter,
   SlidersHorizontal,
 } from "lucide-react";
-import { ServiceCategory } from "@/types";
+import { Database } from "@/integrations/supabase/types";
+
+type ServiceCategory = Database["public"]["Enums"]["service_category"];
 
 const categoryNames: Record<ServiceCategory, { hi: string; en: string; icon: string }> = {
   plumber: { hi: "प्लंबर", en: "Plumber", icon: "🔧" },
@@ -34,16 +36,6 @@ const categoryNames: Record<ServiceCategory, { hi: string; en: string; icon: str
   appliance: { hi: "अप्लायंस रिपेयर", en: "Appliance Repair", icon: "📺" },
 };
 
-// Mock data for providers
-const mockProviders = [
-  { id: "1", name: "राजेश कुमार", category: "plumber", rating: 4.8, reviews: 156, experience: 8, available: true, location: "राजौरी गार्डन", price: "₹300/hr" },
-  { id: "2", name: "सुनील वर्मा", category: "plumber", rating: 4.6, reviews: 98, experience: 5, available: true, location: "पटेल नगर", price: "₹250/hr" },
-  { id: "3", name: "मोहन लाल", category: "plumber", rating: 4.9, reviews: 234, experience: 15, available: false, location: "करोल बाग", price: "₹400/hr" },
-  { id: "4", name: "विनोद सिंह", category: "plumber", rating: 4.5, reviews: 67, experience: 4, available: true, location: "द्वारका", price: "₹200/hr" },
-  { id: "5", name: "अमित यादव", category: "electrician", rating: 4.9, reviews: 203, experience: 12, available: true, location: "रोहिणी", price: "₹350/hr" },
-  { id: "6", name: "प्रकाश गुप्ता", category: "electrician", rating: 4.7, reviews: 145, experience: 9, available: true, location: "पीतमपुरा", price: "₹300/hr" },
-];
-
 const ProvidersListPage = () => {
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
@@ -52,17 +44,18 @@ const ProvidersListPage = () => {
   const [sortBy, setSortBy] = useState("rating");
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
 
+  const { data: allProviders = [], isLoading } = useProviders(category);
+
   const categoryInfo = category ? categoryNames[category as ServiceCategory] : null;
 
-  // Filter providers by category and search
-  const filteredProviders = mockProviders
-    .filter((p) => p.category === category)
+  // Filter and sort providers
+  const filteredProviders = allProviders
     .filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
     .filter((p) => !showAvailableOnly || p.available)
     .sort((a, b) => {
-      if (sortBy === "rating") return b.rating - a.rating;
+      if (sortBy === "rating") return Number(b.rating) - Number(a.rating);
       if (sortBy === "experience") return b.experience - a.experience;
-      if (sortBy === "reviews") return b.reviews - a.reviews;
+      if (sortBy === "reviews") return b.review_count - a.review_count;
       return 0;
     });
 
@@ -136,11 +129,22 @@ const ProvidersListPage = () => {
 
       {/* Providers List */}
       <div className="px-4 py-4 space-y-3">
-        {filteredProviders.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full"
+            />
+          </div>
+        ) : filteredProviders.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-4">{categoryInfo?.icon || "🔍"}</div>
             <p className="text-muted-foreground">
               {language === "hi" ? "कोई सेवा प्रदाता नहीं मिला" : "No providers found"}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {language === "hi" ? "जल्द ही उपलब्ध होंगे!" : "Coming soon!"}
             </p>
           </div>
         ) : (
@@ -157,16 +161,22 @@ const ProvidersListPage = () => {
               >
                 <div className="flex gap-4">
                   <div className="w-20 h-20 rounded-xl bg-muted flex items-center justify-center text-4xl shrink-0">
-                    👤
+                    {provider.photo_url ? (
+                      <img src={provider.photo_url} alt={provider.name} className="w-full h-full object-cover rounded-xl" />
+                    ) : (
+                      "👤"
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <h3 className="font-semibold text-lg">{provider.name}</h3>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <MapPin className="w-3 h-3" />
-                          <span>{provider.location}</span>
-                        </div>
+                        {provider.location && (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <MapPin className="w-3 h-3" />
+                            <span>{provider.location}</span>
+                          </div>
+                        )}
                       </div>
                       <span
                         className={`text-xs px-2 py-1 rounded-full shrink-0 ${
@@ -182,9 +192,9 @@ const ProvidersListPage = () => {
                     <div className="flex items-center gap-4 mt-2">
                       <div className="flex items-center gap-1">
                         <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                        <span className="text-sm font-medium">{provider.rating}</span>
+                        <span className="text-sm font-medium">{Number(provider.rating).toFixed(1)}</span>
                         <span className="text-xs text-muted-foreground">
-                          ({provider.reviews})
+                          ({provider.review_count})
                         </span>
                       </div>
                       <span className="text-xs text-muted-foreground">
@@ -193,9 +203,19 @@ const ProvidersListPage = () => {
                     </div>
 
                     <div className="flex items-center justify-between mt-3">
-                      <span className="font-semibold text-primary">{provider.price}</span>
+                      <span className="font-semibold text-primary">
+                        {provider.price_per_hour > 0 ? `₹${provider.price_per_hour}/hr` : ""}
+                      </span>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="h-8">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `tel:${provider.phone}`;
+                          }}
+                        >
                           <Phone className="w-4 h-4 mr-1" />
                           {t("provider.call")}
                         </Button>
