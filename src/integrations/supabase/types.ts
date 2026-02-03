@@ -14,16 +14,189 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          city: string | null
+          created_at: string
+          id: string
+          language: string | null
+          name: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          id?: string
+          language?: string | null
+          name: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          id?: string
+          language?: string | null
+          name?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          provider_id: string
+          rating: number
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          provider_id: string
+          rating: number
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          provider_id?: string
+          rating?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "service_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_providers: {
+        Row: {
+          about: string | null
+          available: boolean | null
+          category: Database["public"]["Enums"]["service_category"]
+          city: string
+          created_at: string
+          email: string | null
+          experience: number | null
+          id: string
+          location: string | null
+          name: string
+          phone: string
+          photo_url: string | null
+          price_per_hour: number | null
+          rating: number | null
+          review_count: number | null
+          skills: string[] | null
+          status: Database["public"]["Enums"]["provider_status"] | null
+          updated_at: string
+          user_id: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          about?: string | null
+          available?: boolean | null
+          category: Database["public"]["Enums"]["service_category"]
+          city: string
+          created_at?: string
+          email?: string | null
+          experience?: number | null
+          id?: string
+          location?: string | null
+          name: string
+          phone: string
+          photo_url?: string | null
+          price_per_hour?: number | null
+          rating?: number | null
+          review_count?: number | null
+          skills?: string[] | null
+          status?: Database["public"]["Enums"]["provider_status"] | null
+          updated_at?: string
+          user_id?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          about?: string | null
+          available?: boolean | null
+          category?: Database["public"]["Enums"]["service_category"]
+          city?: string
+          created_at?: string
+          email?: string | null
+          experience?: number | null
+          id?: string
+          location?: string | null
+          name?: string
+          phone?: string
+          photo_url?: string | null
+          price_per_hour?: number | null
+          rating?: number | null
+          review_count?: number | null
+          skills?: string[] | null
+          status?: Database["public"]["Enums"]["provider_status"] | null
+          updated_at?: string
+          user_id?: string | null
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
+      provider_status: "pending" | "approved" | "rejected"
+      service_category:
+        | "plumber"
+        | "electrician"
+        | "carpenter"
+        | "painter"
+        | "cleaner"
+        | "acRepair"
+        | "pestControl"
+        | "appliance"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +323,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+      provider_status: ["pending", "approved", "rejected"],
+      service_category: [
+        "plumber",
+        "electrician",
+        "carpenter",
+        "painter",
+        "cleaner",
+        "acRepair",
+        "pestControl",
+        "appliance",
+      ],
+    },
   },
 } as const
