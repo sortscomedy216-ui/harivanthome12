@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useLocation as useAppLocation, cities } from "@/contexts/LocationContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,7 +19,6 @@ import {
 } from "@/components/ui/select";
 import {
   ArrowLeft,
-  Upload,
   User,
   Phone,
   MapPin,
@@ -25,9 +26,12 @@ import {
   Clock,
   CheckCircle2,
   Camera,
+  LogIn,
 } from "lucide-react";
-import { ServiceCategory } from "@/types";
 import { toast } from "sonner";
+import { Database } from "@/integrations/supabase/types";
+
+type ServiceCategory = Database["public"]["Enums"]["service_category"];
 
 const categories: { id: ServiceCategory; hi: string; en: string }[] = [
   { id: "plumber", hi: "प्लंबर", en: "Plumber" },
@@ -44,16 +48,18 @@ const ProviderRegistrationPage = () => {
   const navigate = useNavigate();
   const { language, t } = useLanguage();
   const { city } = useAppLocation();
+  const { user } = useAuth();
   
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     email: "",
-    category: "",
+    category: "" as ServiceCategory | "",
     experience: "",
     location: "",
     city: city || "",
     about: "",
+    price_per_hour: "",
   });
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,20 +83,40 @@ const ProviderRegistrationPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.phone || !formData.category || !formData.experience) {
+    if (!formData.name || !formData.phone || !formData.category || !formData.experience || !formData.city) {
       toast.error(language === "hi" ? "कृपया सभी आवश्यक फ़ील्ड भरें" : "Please fill all required fields");
       return;
     }
 
     setIsSubmitting(true);
     
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    setIsSubmitting(false);
-    setIsSubmitted(true);
-    
-    toast.success(language === "hi" ? "रजिस्ट्रेशन सफल!" : "Registration successful!");
+    try {
+      const { error } = await supabase
+        .from("service_providers")
+        .insert({
+          user_id: user?.id || null,
+          name: formData.name,
+          phone: formData.phone,
+          email: formData.email || null,
+          category: formData.category as ServiceCategory,
+          experience: parseInt(formData.experience) || 0,
+          location: formData.location || null,
+          city: formData.city,
+          about: formData.about || null,
+          price_per_hour: parseInt(formData.price_per_hour) || 0,
+          status: "pending",
+        });
+
+      if (error) throw error;
+      
+      setIsSubmitted(true);
+      toast.success(language === "hi" ? "रजिस्ट्रेशन सफल!" : "Registration successful!");
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      toast.error(error.message || (language === "hi" ? "त्रुटि हुई" : "An error occurred"));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSubmitted) {
@@ -167,6 +193,27 @@ const ProviderRegistrationPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Login prompt for non-authenticated users */}
+      {!user && (
+        <div className="px-4 pt-4">
+          <Card className="p-4 bg-primary/5 border-primary/20">
+            <div className="flex items-center gap-3">
+              <LogIn className="w-5 h-5 text-primary" />
+              <div className="flex-1">
+                <p className="text-sm">
+                  {language === "hi" 
+                    ? "लॉगिन करें अपने अनुरोध को ट्रैक करने के लिए"
+                    : "Login to track your application"}
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => navigate("/auth")}>
+                {t("auth.login")}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="px-4 pt-4 space-y-4">
         {/* Photo Upload */}
@@ -282,6 +329,19 @@ const ProviderRegistrationPage = () => {
                 required
               />
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="price">{language === "hi" ? "प्रति घंटा शुल्क (₹)" : "Hourly Rate (₹)"}</Label>
+            <Input
+              id="price"
+              type="number"
+              min="0"
+              placeholder="300"
+              value={formData.price_per_hour}
+              onChange={(e) => handleInputChange("price_per_hour", e.target.value)}
+              className="mt-1.5"
+            />
           </div>
         </Card>
 
