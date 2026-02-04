@@ -92,7 +92,9 @@ export type Database = {
           email: string | null
           experience: number | null
           id: string
+          latitude: number | null
           location: string | null
+          longitude: number | null
           name: string
           phone: string
           photo_url: string | null
@@ -114,7 +116,9 @@ export type Database = {
           email?: string | null
           experience?: number | null
           id?: string
+          latitude?: number | null
           location?: string | null
+          longitude?: number | null
           name: string
           phone: string
           photo_url?: string | null
@@ -136,7 +140,9 @@ export type Database = {
           email?: string | null
           experience?: number | null
           id?: string
+          latitude?: number | null
           location?: string | null
+          longitude?: number | null
           name?: string
           phone?: string
           photo_url?: string | null

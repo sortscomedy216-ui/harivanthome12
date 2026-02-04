@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useProviders } from "@/hooks/useProviders";
+import { useLocation as useAppLocation } from "@/contexts/LocationContext";
+import { useProviders, ProviderWithDistance } from "@/hooks/useProviders";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,8 @@ import {
   Phone,
   MapPin,
   SlidersHorizontal,
+  Navigation,
+  Loader2,
 } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
 
@@ -40,8 +43,9 @@ const ProvidersListPage = () => {
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
   const { language, t } = useLanguage();
+  const { coordinates, isLoadingLocation, requestLocation, locationError } = useAppLocation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState("rating");
+  const [sortBy, setSortBy] = useState("distance");
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
 
   const { data: allProviders = [], isLoading } = useProviders(category);
@@ -53,11 +57,23 @@ const ProvidersListPage = () => {
     .filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
     .filter((p) => !showAvailableOnly || p.available)
     .sort((a, b) => {
+      if (sortBy === "distance") {
+        if (a.distance !== null && b.distance !== null) return a.distance - b.distance;
+        if (a.distance !== null) return -1;
+        if (b.distance !== null) return 1;
+        return Number(b.rating) - Number(a.rating);
+      }
       if (sortBy === "rating") return Number(b.rating) - Number(a.rating);
       if (sortBy === "experience") return b.experience - a.experience;
       if (sortBy === "reviews") return b.review_count - a.review_count;
       return 0;
     });
+
+  const formatDistance = (distance: number | null): string => {
+    if (distance === null) return "";
+    if (distance < 1) return `${Math.round(distance * 1000)} m`;
+    return `${distance.toFixed(1)} km`;
+  };
 
   const handleProviderClick = (providerId: string) => {
     navigate(`/provider/${providerId}`);
@@ -111,6 +127,7 @@ const ProvidersListPage = () => {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="distance">{language === "hi" ? "दूरी" : "Distance"}</SelectItem>
             <SelectItem value="rating">{language === "hi" ? "रेटिंग" : "Rating"}</SelectItem>
             <SelectItem value="experience">{language === "hi" ? "अनुभव" : "Experience"}</SelectItem>
             <SelectItem value="reviews">{language === "hi" ? "रिव्यू" : "Reviews"}</SelectItem>
@@ -125,7 +142,32 @@ const ProvidersListPage = () => {
         >
           {language === "hi" ? "उपलब्ध" : "Available"}
         </Button>
+
+        {/* Location Button */}
+        <Button
+          variant={coordinates ? "outline" : "default"}
+          size="sm"
+          className="whitespace-nowrap"
+          onClick={requestLocation}
+          disabled={isLoadingLocation}
+        >
+          {isLoadingLocation ? (
+            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+          ) : (
+            <Navigation className="w-4 h-4 mr-1" />
+          )}
+          {coordinates 
+            ? (language === "hi" ? "लोकेशन ✓" : "Location ✓")
+            : (language === "hi" ? "लोकेशन" : "Location")}
+        </Button>
       </div>
+
+      {/* Location Error */}
+      {locationError && (
+        <div className="px-4 py-2 bg-destructive/10 text-destructive text-sm">
+          {locationError}
+        </div>
+      )}
 
       {/* Providers List */}
       <div className="px-4 py-4 space-y-3">
@@ -171,12 +213,20 @@ const ProvidersListPage = () => {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <h3 className="font-semibold text-lg">{provider.name}</h3>
-                        {provider.location && (
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <MapPin className="w-3 h-3" />
-                            <span>{provider.location}</span>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          {provider.distance !== null && (
+                            <span className="flex items-center gap-1 text-primary font-medium">
+                              <Navigation className="w-3 h-3" />
+                              {formatDistance(provider.distance)}
+                            </span>
+                          )}
+                          {provider.location && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {provider.location}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <span
                         className={`text-xs px-2 py-1 rounded-full shrink-0 ${

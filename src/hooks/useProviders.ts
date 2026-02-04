@@ -24,13 +24,19 @@ export interface ServiceProvider {
   status: string;
   about: string | null;
   created_at: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+export interface ProviderWithDistance extends ServiceProvider {
+  distance: number | null;
 }
 
 export const useProviders = (category?: string) => {
-  const { city } = useAppLocation();
+  const { city, calculateDistance, coordinates } = useAppLocation();
 
   return useQuery({
-    queryKey: ["providers", category, city],
+    queryKey: ["providers", category, city, coordinates?.latitude, coordinates?.longitude],
     queryFn: async () => {
       let query = supabase
         .from("service_providers")
@@ -48,7 +54,30 @@ export const useProviders = (category?: string) => {
       const { data, error } = await query.order("rating", { ascending: false });
 
       if (error) throw error;
-      return data as ServiceProvider[];
+
+      // Calculate distance for each provider
+      const providersWithDistance: ProviderWithDistance[] = ((data || []) as ServiceProvider[]).map((provider) => {
+        let distance: number | null = null;
+        if (provider.latitude && provider.longitude) {
+          distance = calculateDistance(
+            Number(provider.latitude),
+            Number(provider.longitude)
+          );
+        }
+        return { ...provider, distance };
+      });
+
+      // Sort: providers with distance first (nearest), then providers without distance (by rating)
+      providersWithDistance.sort((a, b) => {
+        if (a.distance !== null && b.distance !== null) {
+          return a.distance - b.distance;
+        }
+        if (a.distance !== null && b.distance === null) return -1;
+        if (a.distance === null && b.distance !== null) return 1;
+        return Number(b.rating) - Number(a.rating);
+      });
+
+      return providersWithDistance;
     },
   });
 };
