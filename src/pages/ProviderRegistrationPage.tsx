@@ -27,6 +27,8 @@ import {
   CheckCircle2,
   Camera,
   LogIn,
+  Navigation,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Database } from "@/integrations/supabase/types";
@@ -47,7 +49,7 @@ const categories: { id: ServiceCategory; hi: string; en: string }[] = [
 const ProviderRegistrationPage = () => {
   const navigate = useNavigate();
   const { language, t } = useLanguage();
-  const { city } = useAppLocation();
+  const { city, coordinates, requestLocation, isLoadingLocation } = useAppLocation();
   const { user } = useAuth();
   
   const [formData, setFormData] = useState({
@@ -60,6 +62,8 @@ const ProviderRegistrationPage = () => {
     city: city || "",
     about: "",
     price_per_hour: "",
+    latitude: coordinates?.latitude || null as number | null,
+    longitude: coordinates?.longitude || null as number | null,
   });
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,6 +71,25 @@ const ProviderRegistrationPage = () => {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleCaptureLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setFormData((prev) => ({
+            ...prev,
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          }));
+          toast.success(language === "hi" ? "लोकेशन प्राप्त हुआ!" : "Location captured!");
+        },
+        () => {
+          toast.error(language === "hi" ? "लोकेशन प्राप्त करने में त्रुटि" : "Error getting location");
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,6 +128,8 @@ const ProviderRegistrationPage = () => {
           about: formData.about || null,
           price_per_hour: parseInt(formData.price_per_hour) || 0,
           status: "pending",
+          latitude: formData.latitude,
+          longitude: formData.longitude,
         });
 
       if (error) throw error;
@@ -375,6 +400,35 @@ const ProviderRegistrationPage = () => {
                 onChange={(e) => handleInputChange("location", e.target.value)}
                 className="pl-10"
               />
+            </div>
+          </div>
+
+          {/* GPS Location Capture */}
+          <div>
+            <Label>{language === "hi" ? "GPS लोकेशन" : "GPS Location"}</Label>
+            <div className="mt-1.5">
+              <Button
+                type="button"
+                variant={formData.latitude ? "outline" : "default"}
+                className="w-full"
+                onClick={handleCaptureLocation}
+              >
+                {isLoadingLocation ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Navigation className="w-4 h-4 mr-2" />
+                )}
+                {formData.latitude 
+                  ? (language === "hi" ? "लोकेशन प्राप्त ✓" : "Location Captured ✓")
+                  : (language === "hi" ? "मेरी लोकेशन लें" : "Get My Location")}
+              </Button>
+              {formData.latitude && (
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  {language === "hi" 
+                    ? "आपकी लोकेशन सेव हो गई है। ग्राहक आपको आसानी से ढूंढ पाएंगे।"
+                    : "Your location is saved. Customers can easily find you."}
+                </p>
+              )}
             </div>
           </div>
         </Card>
