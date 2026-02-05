@@ -13,7 +13,10 @@ import ProviderDetailPage from "./pages/ProviderDetailPage";
 import ProviderRegistrationPage from "./pages/ProviderRegistrationPage";
 import AdminPage from "./pages/AdminPage";
 import AuthPage from "./pages/AuthPage";
+import InstallPage from "./pages/InstallPage";
 import NotFound from "./pages/NotFound";
+import PWAInstallPrompt from "./components/PWAInstallPrompt";
+import OfflineIndicator from "./components/OfflineIndicator";
 
 const queryClient = new QueryClient();
 
@@ -34,9 +37,12 @@ const App = () => (
                 <Route path="/register-provider" element={<ProviderRegistrationPage />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/auth" element={<AuthPage />} />
+                <Route path="/install" element={<InstallPage />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              <PWAInstallPrompt />
+              <OfflineIndicator />
             </BrowserRouter>
           </TooltipProvider>
         </AuthProvider>
