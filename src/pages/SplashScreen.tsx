@@ -5,15 +5,17 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useLocation as useAppLocation, cities } from "@/contexts/LocationContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Home, Wrench, Zap, MapPin } from "lucide-react";
+import { Home, Wrench, Zap, MapPin, Navigation, Loader2 } from "lucide-react";
 
 type OnboardingStep = "splash" | "language" | "location";
 
 const SplashScreen = () => {
   const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
-  const { city, setCity, isLocationSet } = useAppLocation();
+  const { city, setCity, isLocationSet, coordinates, requestLocation, isLoadingLocation } = useAppLocation();
   const [step, setStep] = useState<OnboardingStep>("splash");
+  const [detectedLocation, setDetectedLocation] = useState<string | null>(null);
+  const [isDetectingCity, setIsDetectingCity] = useState(false);
 
   useEffect(() => {
     // Check if onboarding is completed
@@ -31,9 +33,59 @@ const SplashScreen = () => {
     return () => clearTimeout(timer);
   }, [isLocationSet, navigate]);
 
+  // Auto-detect city from GPS coordinates using reverse geocoding
+  const detectCityFromGPS = async () => {
+    if (!coordinates) {
+      requestLocation();
+      return;
+    }
+    
+    setIsDetectingCity(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coordinates.latitude}&lon=${coordinates.longitude}&addressdetails=1`
+      );
+      const data = await response.json();
+      
+      if (data.address) {
+        const { city: detCity, town, village, state_district, state, county } = data.address;
+        const locationName = detCity || town || village || state_district || county || state || "";
+        
+        // Try to match with our cities list
+        const matchedCity = cities.find(c => 
+          c.nameEn.toLowerCase() === locationName.toLowerCase() ||
+          c.name === locationName
+        );
+        
+        if (matchedCity) {
+          setCity(matchedCity.id);
+          setDetectedLocation(`${matchedCity.nameEn}, ${state || "India"}`);
+        } else {
+          // Show detected location even if not in our list
+          setDetectedLocation(`${locationName}${state ? `, ${state}` : ""}`);
+        }
+      }
+    } catch (error) {
+      console.error("Error detecting location:", error);
+    } finally {
+      setIsDetectingCity(false);
+    }
+  };
+
+  // Auto-detect location when coordinates are available
+  useEffect(() => {
+    if (coordinates && step === "location" && !detectedLocation) {
+      detectCityFromGPS();
+    }
+  }, [coordinates, step]);
+
   const handleLanguageSelect = (lang: "hi" | "en") => {
     setLanguage(lang);
     setStep("location");
+    // Request location when entering location step
+    if (!coordinates) {
+      requestLocation();
+    }
   };
 
   const handleLocationSelect = (selectedCity: string) => {
@@ -193,7 +245,7 @@ const SplashScreen = () => {
             exit={{ opacity: 0, x: -100 }}
             className="min-h-screen flex flex-col p-6 safe-top"
           >
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center">
                 <MapPin className="w-6 h-6 text-primary-foreground" />
               </div>
@@ -206,6 +258,45 @@ const SplashScreen = () => {
                 </p>
               </div>
             </div>
+
+            {/* Auto GPS Location Detection */}
+            <Card 
+              className={`p-4 mb-4 cursor-pointer transition-all border-2 ${
+                detectedLocation ? "border-primary bg-primary/5" : "border-dashed border-muted-foreground/30"
+              }`}
+              onClick={detectCityFromGPS}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  detectedLocation ? "bg-primary text-primary-foreground" : "bg-muted"
+                }`}>
+                  {isDetectingCity || isLoadingLocation ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Navigation className="w-5 h-5" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-sm">
+                    {language === "hi" ? "📍 GPS से लोकेशन पाएं" : "📍 Detect via GPS"}
+                  </p>
+                  {detectedLocation ? (
+                    <p className="text-xs text-primary font-medium">{detectedLocation}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      {isDetectingCity || isLoadingLocation
+                        ? (language === "hi" ? "लोकेशन खोज रहे हैं..." : "Detecting location...")
+                        : (language === "hi" ? "अपना शहर/गांव/राज्य देखें" : "See your city/village/state")
+                      }
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Card>
+
+            <p className="text-xs text-muted-foreground mb-3 text-center">
+              {language === "hi" ? "या नीचे से शहर चुनें" : "Or select city below"}
+            </p>
 
             <div className="flex-1 overflow-auto">
               <div className="grid grid-cols-2 gap-3">
