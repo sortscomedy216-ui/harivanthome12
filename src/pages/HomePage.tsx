@@ -16,7 +16,6 @@ import {
   ChevronRight,
   Home as HomeIcon,
   User,
-  Calendar,
   LogIn,
 } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
@@ -262,14 +261,6 @@ const HomePage = () => {
           <Button variant="ghost" className="flex flex-col items-center gap-1 h-auto py-2 text-primary">
             <HomeIcon className="w-5 h-5" />
             <span className="text-xs">{t("nav.home")}</span>
-          </Button>
-          <Button variant="ghost" className="flex flex-col items-center gap-1 h-auto py-2 text-muted-foreground">
-            <Search className="w-5 h-5" />
-            <span className="text-xs">{t("nav.search")}</span>
-          </Button>
-          <Button variant="ghost" className="flex flex-col items-center gap-1 h-auto py-2 text-muted-foreground">
-            <Calendar className="w-5 h-5" />
-            <span className="text-xs">{t("nav.bookings")}</span>
           </Button>
           <Button 
             variant="ghost" 
