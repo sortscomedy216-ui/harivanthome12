@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLocation as useAppLocation, cities } from "@/contexts/LocationContext";
+import { useLocation as useAppLocation } from "@/contexts/LocationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import LocationSearchInput from "@/components/LocationSearchInput";
 import {
   ArrowLeft,
   User,
@@ -373,20 +374,21 @@ const ProviderRegistrationPage = () => {
         {/* Location Info */}
         <Card className="p-4 shadow-card space-y-4">
           <div>
-            <Label htmlFor="city">{language === "hi" ? "शहर" : "City"} *</Label>
-            <Select value={formData.city} onValueChange={(value) => handleInputChange("city", value)}>
-              <SelectTrigger className="mt-1.5">
-                <MapPin className="w-5 h-5 mr-2 text-muted-foreground" />
-                <SelectValue placeholder={language === "hi" ? "शहर चुनें" : "Select city"} />
-              </SelectTrigger>
-              <SelectContent>
-                {cities.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {language === "hi" ? c.name : c.nameEn}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="city">{language === "hi" ? "शहर / जिला / तालुका" : "City / District / Taluka"} *</Label>
+            <div className="mt-1.5">
+              <LocationSearchInput
+                value={formData.city}
+                onChange={(cityValue, details) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    city: cityValue,
+                    latitude: details?.lat ?? prev.latitude,
+                    longitude: details?.lon ?? prev.longitude,
+                  }));
+                }}
+                required
+              />
+            </div>
           </div>
 
           <div>
