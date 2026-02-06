@@ -47,7 +47,8 @@ export const useProviders = (category?: string) => {
         query = query.eq("category", category as ServiceCategory);
       }
 
-      if (city) {
+      // Only filter by city if GPS is not available
+      if (city && !coordinates) {
         query = query.eq("city", city);
       }
 
