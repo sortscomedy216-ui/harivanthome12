@@ -11,11 +11,11 @@ import { Button } from "@/components/ui/button";
 import {
   Search,
   MapPin,
-  Wrench,
   Star,
   ChevronRight,
   Home as HomeIcon,
   User,
+  Plus,
 } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
 
@@ -96,7 +96,7 @@ const HomePage = () => {
             </h1>
             <div className="flex items-center gap-1 text-primary-foreground/80 text-sm">
               <MapPin className="w-4 h-4" />
-              <span>{currentCity ? (language === "hi" ? currentCity.name : currentCity.nameEn) : "Select City"}</span>
+              <span>{city || (language === "hi" ? "लोकेशन सेट करें" : "Set Location")}</span>
             </div>
           </div>
           <Button
@@ -237,29 +237,6 @@ const HomePage = () => {
           </div>
         </div>
 
-        {/* Become Provider CTA */}
-        <Card className="p-4 gradient-primary shadow-elevated">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
-              <Wrench className="w-7 h-7 text-primary-foreground" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-primary-foreground">
-                {t("register.title")}
-              </h3>
-              <p className="text-sm text-primary-foreground/80">
-                {language === "hi" ? "अपनी सेवाएं देकर कमाई करें" : "Earn by providing your services"}
-              </p>
-            </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => navigate("/register-provider")}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </Card>
       </div>
 
       {/* Bottom Navigation */}
@@ -269,10 +246,18 @@ const HomePage = () => {
             <HomeIcon className="w-5 h-5" />
             <span className="text-xs">{t("nav.home")}</span>
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-12 h-12 rounded-full gradient-primary text-primary-foreground shadow-elevated"
+            onClick={() => navigate("/register-provider")}
+          >
+            <Plus className="w-6 h-6" />
+          </Button>
           <Button 
             variant="ghost" 
             className="flex flex-col items-center gap-1 h-auto py-2 text-muted-foreground" 
-            onClick={() => navigate(user ? "/register-provider" : "/auth")}
+            onClick={() => navigate("/profile")}
           >
             <User className="w-5 h-5" />
             <span className="text-xs">{t("nav.profile")}</span>
