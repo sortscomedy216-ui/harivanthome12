@@ -13,13 +13,12 @@ import { toast } from "sonner";
 const AuthPage = () => {
   const navigate = useNavigate();
   const { language } = useLanguage();
-  const { signInWithEmail, signUpWithEmail, user, isAdmin } = useAuth();
+  const { signInWithEmail, user, isAdmin } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSignup, setIsSignup] = useState(true); // TEMP: set to true to create admin
 
   // Redirect if already logged in as admin
   if (user && isAdmin) {
@@ -32,13 +31,6 @@ const AuthPage = () => {
     setIsLoading(true);
 
     try {
-      if (isSignup) {
-        const { error } = await signUpWithEmail(email, password, "Admin");
-        if (error) throw error;
-        toast.success("Admin account created!");
-        setIsSignup(false);
-        return;
-      }
       const { error } = await signInWithEmail(email, password);
       if (error) throw error;
       toast.success(language === "hi" ? "एडमिन लॉगिन सफल!" : "Admin login successful!");
