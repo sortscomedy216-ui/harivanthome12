@@ -16,7 +16,6 @@ import {
   ChevronRight,
   Home as HomeIcon,
   User,
-  LogIn,
 } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
 
@@ -47,6 +46,23 @@ const HomePage = () => {
   const { city } = useAppLocation();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+  const [tapCount, setTapCount] = useState(0);
+  const [lastTapTime, setLastTapTime] = useState(0);
+
+  const handleTitleTap = () => {
+    const now = Date.now();
+    if (now - lastTapTime > 3000) {
+      setTapCount(1);
+    } else {
+      setTapCount((prev) => prev + 1);
+    }
+    setLastTapTime(now);
+
+    if (tapCount + 1 >= 11) {
+      setTapCount(0);
+      navigate("/auth");
+    }
+  };
 
   const { data: providers = [], isLoading } = useProviders();
 
@@ -72,7 +88,10 @@ const HomePage = () => {
       <div className="gradient-primary px-4 pt-6 pb-8 safe-top">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-primary-foreground">
+            <h1 
+              className="text-2xl font-bold text-primary-foreground select-none cursor-default"
+              onClick={handleTitleTap}
+            >
               {t("app.name")}
             </h1>
             <div className="flex items-center gap-1 text-primary-foreground/80 text-sm">
@@ -80,26 +99,14 @@ const HomePage = () => {
               <span>{currentCity ? (language === "hi" ? currentCity.name : currentCity.nameEn) : "Select City"}</span>
             </div>
           </div>
-          {user ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-primary-foreground hover:bg-primary-foreground/10"
-              onClick={() => navigate("/register-provider")}
-            >
-              <User className="w-6 h-6" />
-            </Button>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-primary-foreground hover:bg-primary-foreground/10"
-              onClick={() => navigate("/auth")}
-            >
-              <LogIn className="w-5 h-5 mr-2" />
-              {t("auth.login")}
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-primary-foreground hover:bg-primary-foreground/10"
+            onClick={() => navigate("/register-provider")}
+          >
+            <User className="w-6 h-6" />
+          </Button>
         </div>
 
         {/* Search Bar */}
