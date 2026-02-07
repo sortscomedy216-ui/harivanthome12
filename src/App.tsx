@@ -14,6 +14,7 @@ import ProviderRegistrationPage from "./pages/ProviderRegistrationPage";
 import AdminPage from "./pages/AdminPage";
 import AuthPage from "./pages/AuthPage";
 import InstallPage from "./pages/InstallPage";
+import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import OfflineIndicator from "./components/OfflineIndicator";
@@ -38,6 +39,7 @@ const App = () => (
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/install" element={<InstallPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

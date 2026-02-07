@@ -2,101 +2,109 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useLocation as useAppLocation, cities } from "@/contexts/LocationContext";
+import { useLocation as useAppLocation } from "@/contexts/LocationContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Home, Wrench, Zap, MapPin, Navigation, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import LocationSearchInput from "@/components/LocationSearchInput";
+import { Home, Wrench, Zap, MapPin, Navigation, Loader2, User } from "lucide-react";
 
-type OnboardingStep = "splash" | "language" | "location";
+type OnboardingStep = "splash" | "language" | "userinfo";
 
 const SplashScreen = () => {
   const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
-  const { city, setCity, isLocationSet, coordinates, requestLocation, isLoadingLocation } = useAppLocation();
+  const { setCity, isLocationSet, coordinates, requestLocation, isLoadingLocation } = useAppLocation();
   const [step, setStep] = useState<OnboardingStep>("splash");
-  const [detectedLocation, setDetectedLocation] = useState<string | null>(null);
-  const [isDetectingCity, setIsDetectingCity] = useState(false);
+
+  const [userName, setUserName] = useState(() => localStorage.getItem("harivant-username") || "");
+  const [locationText, setLocationText] = useState(() => localStorage.getItem("harivant-location-text") || "");
+  const [locationDetails, setLocationDetails] = useState<{ lat?: number; lon?: number; district?: string; state?: string; pincode?: string } | null>(null);
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [detectedAddress, setDetectedAddress] = useState("");
 
   useEffect(() => {
-    // Check if onboarding is completed
     const onboardingDone = localStorage.getItem("harivant-onboarding");
     if (onboardingDone && isLocationSet) {
       navigate("/home");
       return;
     }
-
-    // Auto-advance from splash after 2 seconds
-    const timer = setTimeout(() => {
-      setStep("language");
-    }, 2500);
-
+    const timer = setTimeout(() => setStep("language"), 2500);
     return () => clearTimeout(timer);
   }, [isLocationSet, navigate]);
 
-  // Auto-detect city from GPS coordinates using reverse geocoding
-  const detectCityFromGPS = async () => {
+  // Auto-detect location via GPS reverse geocoding
+  const detectFromGPS = async () => {
     if (!coordinates) {
       requestLocation();
       return;
     }
-    
-    setIsDetectingCity(true);
+    setIsDetecting(true);
     try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coordinates.latitude}&lon=${coordinates.longitude}&addressdetails=1`
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coordinates.latitude}&lon=${coordinates.longitude}&addressdetails=1`,
+        { headers: { "Accept-Language": "hi,en" } }
       );
-      const data = await response.json();
-      
+      const data = await res.json();
       if (data.address) {
-        const { city: detCity, town, village, state_district, state, county } = data.address;
-        const locationName = detCity || town || village || state_district || county || state || "";
+        const addr = data.address;
+        const city = addr.city || addr.town || addr.village || addr.hamlet || addr.suburb || "";
+        const district = addr.county || addr.state_district || "";
+        const state = addr.state || "";
+        const pincode = addr.postcode || "";
+        const fullAddress = [city, district, state, pincode].filter(Boolean).join(", ");
         
-        // Try to match with our cities list
-        const matchedCity = cities.find(c => 
-          c.nameEn.toLowerCase() === locationName.toLowerCase() ||
-          c.name === locationName
-        );
-        
-        if (matchedCity) {
-          setCity(matchedCity.id);
-          setDetectedLocation(`${matchedCity.nameEn}, ${state || "India"}`);
-        } else {
-          // Show detected location even if not in our list
-          setDetectedLocation(`${locationName}${state ? `, ${state}` : ""}`);
-        }
+        setDetectedAddress(fullAddress);
+        setLocationText(city || district);
+        setLocationDetails({
+          lat: coordinates.latitude,
+          lon: coordinates.longitude,
+          district,
+          state,
+          pincode,
+        });
       }
     } catch (error) {
-      console.error("Error detecting location:", error);
+      console.error("GPS detection error:", error);
     } finally {
-      setIsDetectingCity(false);
+      setIsDetecting(false);
     }
   };
 
-  // Auto-detect location when coordinates are available
   useEffect(() => {
-    if (coordinates && step === "location" && !detectedLocation) {
-      detectCityFromGPS();
+    if (coordinates && step === "userinfo" && !detectedAddress) {
+      detectFromGPS();
     }
   }, [coordinates, step]);
 
   const handleLanguageSelect = (lang: "hi" | "en") => {
     setLanguage(lang);
-    setStep("location");
-    // Request location when entering location step
-    if (!coordinates) {
-      requestLocation();
-    }
-  };
-
-  const handleLocationSelect = (selectedCity: string) => {
-    setCity(selectedCity);
+    setStep("userinfo");
+    if (!coordinates) requestLocation();
   };
 
   const handleContinue = () => {
-    if (city) {
-      localStorage.setItem("harivant-onboarding", "true");
-      navigate("/home");
+    if (!userName.trim() || !locationText.trim()) return;
+    
+    localStorage.setItem("harivant-username", userName.trim());
+    localStorage.setItem("harivant-location-text", locationText.trim());
+    localStorage.setItem("harivant-onboarding", "true");
+    
+    // Store city in location context
+    setCity(locationText.trim());
+    
+    if (locationDetails) {
+      localStorage.setItem("harivant-coordinates", JSON.stringify({
+        latitude: locationDetails.lat,
+        longitude: locationDetails.lon,
+      }));
+      if (locationDetails.district) localStorage.setItem("harivant-district", locationDetails.district);
+      if (locationDetails.state) localStorage.setItem("harivant-state", locationDetails.state);
+      if (locationDetails.pincode) localStorage.setItem("harivant-pincode", locationDetails.pincode);
     }
+    
+    navigate("/home");
   };
 
   return (
@@ -140,7 +148,7 @@ const SplashScreen = () => {
             <motion.h1
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.6, duration: 0.5 }}
+              transition={{ delay: 0.6 }}
               className="mt-8 text-4xl font-bold text-gradient"
             >
               हरिवंत
@@ -148,7 +156,7 @@ const SplashScreen = () => {
             <motion.p
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.8, duration: 0.5 }}
+              transition={{ delay: 0.8 }}
               className="mt-2 text-lg text-muted-foreground text-center"
             >
               घर की सेवाएं एक क्लिक पर
@@ -165,11 +173,7 @@ const SplashScreen = () => {
                   key={i}
                   className="w-2 h-2 rounded-full bg-primary"
                   animate={{ scale: [1, 1.5, 1] }}
-                  transition={{
-                    duration: 0.6,
-                    repeat: Infinity,
-                    delay: i * 0.2,
-                  }}
+                  transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.2 }}
                 />
               ))}
             </motion.div>
@@ -192,41 +196,28 @@ const SplashScreen = () => {
               <Home className="w-10 h-10 text-primary-foreground" />
             </motion.div>
 
-            <h2 className="text-2xl font-bold text-foreground mb-2">
-              {t("onboarding.welcome")}
-            </h2>
-            <p className="text-muted-foreground mb-8">
-              {t("onboarding.selectLanguage")}
-            </p>
+            <h2 className="text-2xl font-bold text-foreground mb-2">{t("onboarding.welcome")}</h2>
+            <p className="text-muted-foreground mb-8">{t("onboarding.selectLanguage")}</p>
 
             <div className="grid grid-cols-1 gap-4 w-full max-w-xs">
               <Card
-                className={`p-6 cursor-pointer transition-all hover:shadow-elevated ${
-                  language === "hi" ? "ring-2 ring-primary shadow-card" : ""
-                }`}
+                className={`p-6 cursor-pointer transition-all hover:shadow-elevated ${language === "hi" ? "ring-2 ring-primary shadow-card" : ""}`}
                 onClick={() => handleLanguageSelect("hi")}
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center text-2xl">
-                    🇮🇳
-                  </div>
+                  <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center text-2xl">🇮🇳</div>
                   <div>
                     <p className="font-semibold text-lg">हिंदी</p>
                     <p className="text-sm text-muted-foreground">Hindi</p>
                   </div>
                 </div>
               </Card>
-
               <Card
-                className={`p-6 cursor-pointer transition-all hover:shadow-elevated ${
-                  language === "en" ? "ring-2 ring-primary shadow-card" : ""
-                }`}
+                className={`p-6 cursor-pointer transition-all hover:shadow-elevated ${language === "en" ? "ring-2 ring-primary shadow-card" : ""}`}
                 onClick={() => handleLanguageSelect("en")}
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-2xl">
-                    🌐
-                  </div>
+                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-2xl">🌐</div>
                   <div>
                     <p className="font-semibold text-lg">English</p>
                     <p className="text-sm text-muted-foreground">अंग्रेज़ी</p>
@@ -237,40 +228,57 @@ const SplashScreen = () => {
           </motion.div>
         )}
 
-        {step === "location" && (
+        {step === "userinfo" && (
           <motion.div
-            key="location"
+            key="userinfo"
             initial={{ opacity: 0, x: 100 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -100 }}
             className="min-h-screen flex flex-col p-6 safe-top"
           >
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center">
-                <MapPin className="w-6 h-6 text-primary-foreground" />
+                <User className="w-6 h-6 text-primary-foreground" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-foreground">
-                  {t("onboarding.selectLocation")}
+                  {language === "hi" ? "अपनी जानकारी भरें" : "Enter Your Details"}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  {language === "hi" ? "सेवाएं आपके शहर में" : "Services in your city"}
+                  {language === "hi" ? "ताकि हम आपके पास सेवाएं दिखा सकें" : "So we can show services near you"}
                 </p>
               </div>
             </div>
 
-            {/* Auto GPS Location Detection */}
-            <Card 
+            {/* Name Input */}
+            <Card className="p-4 shadow-card mb-4">
+              <Label className="mb-2 block font-medium">
+                {language === "hi" ? "आपका नाम" : "Your Name"} *
+              </Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  placeholder={language === "hi" ? "अपना नाम लिखें" : "Enter your name"}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </Card>
+
+            {/* GPS Auto-Detect */}
+            <Card
               className={`p-4 mb-4 cursor-pointer transition-all border-2 ${
-                detectedLocation ? "border-primary bg-primary/5" : "border-dashed border-muted-foreground/30"
+                detectedAddress ? "border-primary bg-primary/5" : "border-dashed border-muted-foreground/30"
               }`}
-              onClick={detectCityFromGPS}
+              onClick={detectFromGPS}
             >
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  detectedLocation ? "bg-primary text-primary-foreground" : "bg-muted"
+                  detectedAddress ? "bg-primary text-primary-foreground" : "bg-muted"
                 }`}>
-                  {isDetectingCity || isLoadingLocation ? (
+                  {isDetecting || isLoadingLocation ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
                     <Navigation className="w-5 h-5" />
@@ -280,14 +288,13 @@ const SplashScreen = () => {
                   <p className="font-medium text-sm">
                     {language === "hi" ? "📍 GPS से लोकेशन पाएं" : "📍 Detect via GPS"}
                   </p>
-                  {detectedLocation ? (
-                    <p className="text-xs text-primary font-medium">{detectedLocation}</p>
+                  {detectedAddress ? (
+                    <p className="text-xs text-primary font-medium">{detectedAddress}</p>
                   ) : (
                     <p className="text-xs text-muted-foreground">
-                      {isDetectingCity || isLoadingLocation
+                      {isDetecting || isLoadingLocation
                         ? (language === "hi" ? "लोकेशन खोज रहे हैं..." : "Detecting location...")
-                        : (language === "hi" ? "अपना शहर/गांव/राज्य देखें" : "See your city/village/state")
-                      }
+                        : (language === "hi" ? "अपना गांव/शहर/जिला ऑटो पाएं" : "Auto-detect your village/city/district")}
                     </p>
                   )}
                 </div>
@@ -295,34 +302,31 @@ const SplashScreen = () => {
             </Card>
 
             <p className="text-xs text-muted-foreground mb-3 text-center">
-              {language === "hi" ? "या नीचे से शहर चुनें" : "Or select city below"}
+              {language === "hi" ? "या नीचे मैन्युअल खोजें" : "Or search manually below"}
             </p>
 
-            <div className="flex-1 overflow-auto">
-              <div className="grid grid-cols-2 gap-3">
-                {cities.map((c) => (
-                  <Card
-                    key={c.id}
-                    className={`p-4 cursor-pointer transition-all hover:shadow-card ${
-                      city === c.id ? "ring-2 ring-primary bg-primary/5" : ""
-                    }`}
-                    onClick={() => handleLocationSelect(c.id)}
-                  >
-                    <p className="font-medium">
-                      {language === "hi" ? c.name : c.nameEn}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {language === "hi" ? c.nameEn : c.name}
-                    </p>
-                  </Card>
-                ))}
-              </div>
-            </div>
+            {/* Location Search */}
+            <Card className="p-4 shadow-card mb-4">
+              <Label className="mb-2 block font-medium">
+                <MapPin className="w-4 h-4 inline mr-1" />
+                {language === "hi" ? "शहर / जिला / तालुका / पिनकोड" : "City / District / Taluka / Pincode"} *
+              </Label>
+              <LocationSearchInput
+                value={locationText}
+                onChange={(cityValue, details) => {
+                  setLocationText(cityValue);
+                  if (details) setLocationDetails(details);
+                }}
+                required
+              />
+            </Card>
+
+            <div className="flex-1" />
 
             <div className="pt-4 safe-bottom">
               <Button
                 className="w-full h-12 text-lg gradient-primary"
-                disabled={!city}
+                disabled={!userName.trim() || !locationText.trim()}
                 onClick={handleContinue}
               >
                 {t("onboarding.continue")}
