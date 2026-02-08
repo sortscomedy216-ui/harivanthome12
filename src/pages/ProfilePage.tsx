@@ -1,34 +1,76 @@
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useLocation as useAppLocation } from "@/contexts/LocationContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, User, MapPin, Clock, CheckCircle2, XCircle, Loader2, Home as HomeIcon, Plus } from "lucide-react";
+import { ArrowLeft, User, MapPin, Clock, CheckCircle2, XCircle, Loader2, Home as HomeIcon, Plus, Trash2, Navigation } from "lucide-react";
+import { toast } from "sonner";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { language } = useLanguage();
   const { city } = useAppLocation();
+  const queryClient = useQueryClient();
   const userName = localStorage.getItem("harivant-username") || "";
+  const userPhone = localStorage.getItem("harivant-phone") || "";
+  const gpsVillage = localStorage.getItem("harivant-gps-village") || "";
+  const gpsAddress = localStorage.getItem("harivant-gps-address") || "";
+  const district = localStorage.getItem("harivant-district") || "";
+  const state = localStorage.getItem("harivant-state") || "";
+  const pincode = localStorage.getItem("harivant-pincode") || "";
 
   // Check if user has a provider profile by phone or name
   const { data: providerProfile, isLoading } = useQuery({
-    queryKey: ["my-provider-profile", userName],
+    queryKey: ["my-provider-profile", userName, userPhone],
     queryFn: async () => {
-      if (!userName) return null;
-      const { data, error } = await supabase
-        .from("service_providers")
-        .select("*")
-        .eq("name", userName)
-        .limit(1)
-        .maybeSingle();
+      if (!userName && !userPhone) return null;
+      
+      let query = supabase.from("service_providers").select("*");
+      
+      if (userPhone) {
+        query = query.eq("phone", userPhone);
+      } else {
+        query = query.eq("name", userName);
+      }
+      
+      const { data, error } = await query.limit(1).maybeSingle();
       if (error) throw error;
       return data;
     },
-    enabled: !!userName,
+    enabled: !!(userName || userPhone),
   });
+
+  // Delete provider profile
+  const deleteMutation = useMutation({
+    mutationFn: async (providerId: string) => {
+      const { error } = await supabase
+        .from("service_providers")
+        .delete()
+        .eq("id", providerId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-provider-profile"] });
+      toast.success(language === "hi" ? "प्रोफ़ाइल हटा दी गई" : "Profile deleted");
+    },
+    onError: () => {
+      toast.error(language === "hi" ? "प्रोफ़ाइल हटाने में त्रुटि" : "Error deleting profile");
+    },
+  });
+
+  const handleDeleteProfile = () => {
+    if (!providerProfile) return;
+    const confirmed = window.confirm(
+      language === "hi" 
+        ? "क्या आप वाकई अपनी सेवा प्रदाता प्रोफ़ाइल हटाना चाहते हैं?" 
+        : "Are you sure you want to delete your service provider profile?"
+    );
+    if (confirmed) {
+      deleteMutation.mutate(providerProfile.id);
+    }
+  };
 
   const statusConfig = {
     pending: {
@@ -74,14 +116,50 @@ const ProfilePage = () => {
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
               <User className="w-8 h-8 text-primary" />
             </div>
-            <div>
+            <div className="flex-1">
               <h2 className="font-semibold text-lg">{userName || (language === "hi" ? "उपयोगकर्ता" : "User")}</h2>
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <MapPin className="w-4 h-4" />
                 <span>{city || (language === "hi" ? "लोकेशन सेट नहीं" : "Location not set")}</span>
               </div>
+              {gpsVillage && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                  <Navigation className="w-3 h-3" />
+                  <span>{gpsVillage}</span>
+                </div>
+              )}
             </div>
           </div>
+          
+          {/* Location details */}
+          {(district || state || pincode) && (
+            <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 gap-2 text-xs">
+              {district && (
+                <div>
+                  <span className="text-muted-foreground">{language === "hi" ? "जिला:" : "District:"}</span>
+                  <p className="font-medium">{district}</p>
+                </div>
+              )}
+              {state && (
+                <div>
+                  <span className="text-muted-foreground">{language === "hi" ? "राज्य:" : "State:"}</span>
+                  <p className="font-medium">{state}</p>
+                </div>
+              )}
+              {pincode && (
+                <div>
+                  <span className="text-muted-foreground">{language === "hi" ? "पिनकोड:" : "Pincode:"}</span>
+                  <p className="font-medium">{pincode}</p>
+                </div>
+              )}
+              {gpsAddress && (
+                <div className="col-span-2">
+                  <span className="text-muted-foreground">{language === "hi" ? "GPS:" : "GPS:"}</span>
+                  <p className="font-medium">{gpsAddress}</p>
+                </div>
+              )}
+            </div>
+          )}
         </Card>
 
         {/* Provider Profile Status */}
@@ -129,6 +207,22 @@ const ProfilePage = () => {
                 <span className="font-medium">{providerProfile.city}</span>
               </div>
             </div>
+
+            {/* Delete Profile Button */}
+            <Button
+              variant="destructive"
+              size="sm"
+              className="w-full mt-4"
+              onClick={handleDeleteProfile}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
+              {language === "hi" ? "प्रोफ़ाइल हटाएं" : "Delete Profile"}
+            </Button>
           </Card>
         ) : (
           <Card className="p-6 text-center shadow-card">
