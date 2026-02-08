@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -7,10 +7,27 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import LocationSearchInput from "@/components/LocationSearchInput";
-import { Home, Wrench, Zap, MapPin, Navigation, Loader2, User } from "lucide-react";
+import { Home, Wrench, Zap, MapPin, Navigation, Loader2, User, ChevronDown } from "lucide-react";
 
 type OnboardingStep = "splash" | "language" | "userinfo";
+
+// Indian states list
+const indianStates = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
+  "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
+  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+  "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+  "Uttar Pradesh", "Uttarakhand", "West Bengal",
+  "Delhi", "Jammu and Kashmir", "Ladakh", "Puducherry",
+  "Chandigarh", "Andaman and Nicobar Islands", "Dadra and Nagar Haveli and Daman and Diu", "Lakshadweep"
+];
+
+interface PincodeResult {
+  district: string;
+  taluka: string;
+  area: string;
+}
 
 const SplashScreen = () => {
   const navigate = useNavigate();
@@ -19,10 +36,26 @@ const SplashScreen = () => {
   const [step, setStep] = useState<OnboardingStep>("splash");
 
   const [userName, setUserName] = useState(() => localStorage.getItem("harivant-username") || "");
-  const [locationText, setLocationText] = useState(() => localStorage.getItem("harivant-location-text") || "");
-  const [locationDetails, setLocationDetails] = useState<{ lat?: number; lon?: number; district?: string; state?: string; pincode?: string } | null>(null);
-  const [isDetecting, setIsDetecting] = useState(false);
-  const [detectedAddress, setDetectedAddress] = useState("");
+  
+  // Location fields
+  const [selectedState, setSelectedState] = useState(() => localStorage.getItem("harivant-state") || "");
+  const [pincode, setPincode] = useState(() => localStorage.getItem("harivant-pincode") || "");
+  const [pincodeResults, setPincodeResults] = useState<PincodeResult[]>([]);
+  const [selectedPincodeResult, setSelectedPincodeResult] = useState<PincodeResult | null>(null);
+  const [isPincodeLooking, setIsPincodeLooking] = useState(false);
+  
+  // GPS
+  const [gpsAddress, setGpsAddress] = useState("");
+  const [gpsVillage, setGpsVillage] = useState("");
+  const [isDetectingGPS, setIsDetectingGPS] = useState(false);
+  const [gpsCoords, setGpsCoords] = useState<{ lat: number; lon: number } | null>(() => {
+    const stored = localStorage.getItem("harivant-coordinates");
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return { lat: parsed.latitude, lon: parsed.longitude };
+    }
+    return null;
+  });
 
   useEffect(() => {
     const onboardingDone = localStorage.getItem("harivant-onboarding");
@@ -34,76 +67,199 @@ const SplashScreen = () => {
     return () => clearTimeout(timer);
   }, [isLocationSet, navigate]);
 
-  // Auto-detect location via GPS reverse geocoding
-  const detectFromGPS = async () => {
-    if (!coordinates) {
-      requestLocation();
+  // Lookup pincode via India Post API / Nominatim
+  const lookupPincode = useCallback(async (code: string) => {
+    if (code.length !== 6) {
+      setPincodeResults([]);
       return;
     }
-    setIsDetecting(true);
+    setIsPincodeLooking(true);
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coordinates.latitude}&lon=${coordinates.longitude}&addressdetails=1`,
-        { headers: { "Accept-Language": "hi,en" } }
-      );
+      // Use India Post API
+      const res = await fetch(`https://api.postalpincode.in/pincode/${code}`);
       const data = await res.json();
-      if (data.address) {
-        const addr = data.address;
-        const city = addr.city || addr.town || addr.village || addr.hamlet || addr.suburb || "";
-        const district = addr.county || addr.state_district || "";
-        const state = addr.state || "";
-        const pincode = addr.postcode || "";
-        const fullAddress = [city, district, state, pincode].filter(Boolean).join(", ");
+      
+      if (data?.[0]?.Status === "Success" && data[0].PostOffice) {
+        const offices = data[0].PostOffice;
+        const results: PincodeResult[] = offices.slice(0, 3).map((po: any) => ({
+          district: po.District || "",
+          taluka: po.Block || po.Division || "",
+          area: po.Name || "",
+        }));
         
-        setDetectedAddress(fullAddress);
-        setLocationText(city || district);
-        setLocationDetails({
-          lat: coordinates.latitude,
-          lon: coordinates.longitude,
-          district,
-          state,
-          pincode,
-        });
+        // Deduplicate
+        const unique = results.filter(
+          (v, i, a) => a.findIndex((t) => t.district === v.district && t.taluka === v.taluka && t.area === v.area) === i
+        );
+        setPincodeResults(unique);
+      } else {
+        // Fallback to Nominatim
+        const nomRes = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&addressdetails=1&limit=3&postalcode=${code}`,
+          { headers: { "Accept-Language": "hi,en" } }
+        );
+        const nomData = await nomRes.json();
+        if (nomData.length > 0) {
+          const results: PincodeResult[] = nomData.map((item: any) => {
+            const addr = item.address || {};
+            return {
+              district: addr.county || addr.state_district || "",
+              taluka: addr.suburb || addr.town || addr.village || "",
+              area: addr.city || addr.town || addr.village || addr.hamlet || "",
+            };
+          }).filter((r: PincodeResult) => r.district || r.area);
+          setPincodeResults(results);
+        } else {
+          setPincodeResults([]);
+        }
       }
-    } catch (error) {
-      console.error("GPS detection error:", error);
+    } catch {
+      setPincodeResults([]);
     } finally {
-      setIsDetecting(false);
+      setIsPincodeLooking(false);
     }
-  };
+  }, []);
 
-  useEffect(() => {
-    if (coordinates && step === "userinfo" && !detectedAddress) {
-      detectFromGPS();
+  // Auto-detect GPS location
+  const detectGPS = useCallback(async () => {
+    setIsDetectingGPS(true);
+    
+    // Request permission and get position
+    if (!navigator.geolocation) {
+      setIsDetectingGPS(false);
+      return;
     }
-  }, [coordinates, step]);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        setGpsCoords({ lat, lon });
+        
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1&zoom=18`,
+            { headers: { "Accept-Language": "hi,en" } }
+          );
+          const data = await res.json();
+          if (data.address) {
+            const addr = data.address;
+            const village = addr.village || addr.hamlet || addr.suburb || addr.neighbourhood || "";
+            const town = addr.town || addr.city || "";
+            const road = addr.road || "";
+            
+            setGpsVillage(village || town);
+            
+            const parts = [road, village, town].filter(Boolean);
+            setGpsAddress(parts.join(", ") || data.display_name?.split(",").slice(0, 3).join(", ") || "");
+            
+            // Auto-fill state and pincode if not set
+            if (!selectedState && addr.state) {
+              const matchedState = indianStates.find(s => 
+                s.toLowerCase() === addr.state.toLowerCase() || 
+                addr.state.toLowerCase().includes(s.toLowerCase())
+              );
+              if (matchedState) setSelectedState(matchedState);
+            }
+            if (!pincode && addr.postcode) {
+              setPincode(addr.postcode);
+              lookupPincode(addr.postcode);
+            }
+          }
+        } catch (err) {
+          console.error("Reverse geocoding error:", err);
+        } finally {
+          setIsDetectingGPS(false);
+        }
+      },
+      (error) => {
+        console.error("GPS error:", error);
+        setIsDetectingGPS(false);
+        // Request location through context as fallback
+        requestLocation();
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      }
+    );
+  }, [selectedState, pincode, requestLocation, lookupPincode]);
+
+  // When coordinates come from context (fallback)
+  useEffect(() => {
+    if (coordinates && step === "userinfo" && !gpsCoords) {
+      setGpsCoords({ lat: coordinates.latitude, lon: coordinates.longitude });
+      // Reverse geocode
+      (async () => {
+        setIsDetectingGPS(true);
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coordinates.latitude}&lon=${coordinates.longitude}&addressdetails=1&zoom=18`,
+            { headers: { "Accept-Language": "hi,en" } }
+          );
+          const data = await res.json();
+          if (data.address) {
+            const addr = data.address;
+            const village = addr.village || addr.hamlet || addr.suburb || addr.neighbourhood || "";
+            const town = addr.town || addr.city || "";
+            const road = addr.road || "";
+            setGpsVillage(village || town);
+            setGpsAddress([road, village, town].filter(Boolean).join(", ") || "");
+          }
+        } catch {} finally {
+          setIsDetectingGPS(false);
+        }
+      })();
+    }
+  }, [coordinates, step, gpsCoords]);
 
   const handleLanguageSelect = (lang: "hi" | "en") => {
     setLanguage(lang);
     setStep("userinfo");
-    if (!coordinates) requestLocation();
   };
 
+  const handlePincodeChange = (value: string) => {
+    const cleaned = value.replace(/\D/g, "").slice(0, 6);
+    setPincode(cleaned);
+    setSelectedPincodeResult(null);
+    if (cleaned.length === 6) {
+      lookupPincode(cleaned);
+    } else {
+      setPincodeResults([]);
+    }
+  };
+
+  const handleSelectPincodeResult = (result: PincodeResult) => {
+    setSelectedPincodeResult(result);
+  };
+
+  const canContinue = userName.trim() && selectedState && pincode.length === 6 && selectedPincodeResult && gpsCoords;
+
   const handleContinue = () => {
-    if (!userName.trim() || !locationText.trim()) return;
+    if (!canContinue) return;
+    
+    const cityValue = selectedPincodeResult.area || selectedPincodeResult.district;
     
     localStorage.setItem("harivant-username", userName.trim());
-    localStorage.setItem("harivant-location-text", locationText.trim());
+    localStorage.setItem("harivant-state", selectedState);
+    localStorage.setItem("harivant-pincode", pincode);
+    localStorage.setItem("harivant-district", selectedPincodeResult.district);
+    localStorage.setItem("harivant-taluka", selectedPincodeResult.taluka);
+    localStorage.setItem("harivant-area", selectedPincodeResult.area);
+    localStorage.setItem("harivant-location-text", cityValue);
     localStorage.setItem("harivant-onboarding", "true");
+    localStorage.setItem("harivant-gps-village", gpsVillage);
+    localStorage.setItem("harivant-gps-address", gpsAddress);
     
-    // Store city in location context
-    setCity(locationText.trim());
-    
-    if (locationDetails) {
+    if (gpsCoords) {
       localStorage.setItem("harivant-coordinates", JSON.stringify({
-        latitude: locationDetails.lat,
-        longitude: locationDetails.lon,
+        latitude: gpsCoords.lat,
+        longitude: gpsCoords.lon,
       }));
-      if (locationDetails.district) localStorage.setItem("harivant-district", locationDetails.district);
-      if (locationDetails.state) localStorage.setItem("harivant-state", locationDetails.state);
-      if (locationDetails.pincode) localStorage.setItem("harivant-pincode", locationDetails.pincode);
     }
     
+    setCity(cityValue);
     navigate("/home");
   };
 
@@ -250,87 +406,189 @@ const SplashScreen = () => {
               </div>
             </div>
 
-            {/* Name Input */}
-            <Card className="p-4 shadow-card mb-4">
-              <Label className="mb-2 block font-medium">
-                {language === "hi" ? "आपका नाम" : "Your Name"} *
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <div className="space-y-4 flex-1 overflow-y-auto pb-24">
+              {/* Name Input */}
+              <Card className="p-4 shadow-card">
+                <Label className="mb-2 block font-medium">
+                  {language === "hi" ? "आपका नाम" : "Your Name"} *
+                </Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    placeholder={language === "hi" ? "अपना नाम लिखें" : "Enter your name"}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </Card>
+
+              {/* State Selection */}
+              <Card className="p-4 shadow-card">
+                <Label className="mb-2 block font-medium">
+                  <MapPin className="w-4 h-4 inline mr-1" />
+                  {language === "hi" ? "राज्य चुनें" : "Select State"} *
+                </Label>
+                <div className="relative">
+                  <select
+                    value={selectedState}
+                    onChange={(e) => setSelectedState(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 appearance-none pr-10"
+                  >
+                    <option value="">{language === "hi" ? "-- राज्य चुनें --" : "-- Select State --"}</option>
+                    {indianStates.map((state) => (
+                      <option key={state} value={state}>{state}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                </div>
+              </Card>
+
+              {/* Pincode */}
+              <Card className="p-4 shadow-card">
+                <Label className="mb-2 block font-medium">
+                  {language === "hi" ? "पिनकोड" : "Pincode"} *
+                </Label>
                 <Input
-                  value={userName}
-                  onChange={(e) => setUserName(e.target.value)}
-                  placeholder={language === "hi" ? "अपना नाम लिखें" : "Enter your name"}
-                  className="pl-10"
-                  required
+                  value={pincode}
+                  onChange={(e) => handlePincodeChange(e.target.value)}
+                  placeholder={language === "hi" ? "6 अंक का पिनकोड डालें" : "Enter 6-digit pincode"}
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={6}
                 />
-              </div>
-            </Card>
+                
+                {isPincodeLooking && (
+                  <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {language === "hi" ? "जानकारी खोज रहे हैं..." : "Looking up..."}
+                  </div>
+                )}
 
-            {/* GPS Auto-Detect */}
-            <Card
-              className={`p-4 mb-4 cursor-pointer transition-all border-2 ${
-                detectedAddress ? "border-primary bg-primary/5" : "border-dashed border-muted-foreground/30"
-              }`}
-              onClick={detectFromGPS}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  detectedAddress ? "bg-primary text-primary-foreground" : "bg-muted"
-                }`}>
-                  {isDetecting || isLoadingLocation ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Navigation className="w-5 h-5" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-sm">
-                    {language === "hi" ? "📍 GPS से लोकेशन पाएं" : "📍 Detect via GPS"}
-                  </p>
-                  {detectedAddress ? (
-                    <p className="text-xs text-primary font-medium">{detectedAddress}</p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      {isDetecting || isLoadingLocation
-                        ? (language === "hi" ? "लोकेशन खोज रहे हैं..." : "Detecting location...")
-                        : (language === "hi" ? "अपना गांव/शहर/जिला ऑटो पाएं" : "Auto-detect your village/city/district")}
+                {/* Pincode results - auto fill options */}
+                {pincodeResults.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {language === "hi" ? "नीचे से चुनें:" : "Select below:"}
                     </p>
+                    {pincodeResults.map((result, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleSelectPincodeResult(result)}
+                        className={`w-full text-left p-3 rounded-lg border transition-all ${
+                          selectedPincodeResult === result
+                            ? "border-primary bg-primary/5 ring-1 ring-primary"
+                            : "border-border hover:border-primary/50 hover:bg-accent/30"
+                        }`}
+                      >
+                        <div className="flex items-start gap-2">
+                          <MapPin className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium">{result.area}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {[result.taluka, result.district].filter(Boolean).join(" • ")}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Show selected info */}
+                {selectedPincodeResult && (
+                  <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">{language === "hi" ? "जिला:" : "District:"}</span>
+                        <p className="font-medium">{selectedPincodeResult.district}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">{language === "hi" ? "तालुका:" : "Taluka:"}</span>
+                        <p className="font-medium">{selectedPincodeResult.taluka || "-"}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">{language === "hi" ? "क्षेत्र:" : "Area:"}</span>
+                        <p className="font-medium">{selectedPincodeResult.area}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </Card>
+
+              {/* GPS Location - Phone ki location */}
+              <Card className={`p-4 shadow-card border-2 ${
+                gpsAddress ? "border-primary bg-primary/5" : "border-dashed border-muted-foreground/30"
+              }`}>
+                <Label className="mb-3 block font-medium">
+                  <Navigation className="w-4 h-4 inline mr-1" />
+                  {language === "hi" ? "आपकी GPS लोकेशन" : "Your GPS Location"} *
+                </Label>
+                
+                <Button
+                  type="button"
+                  variant={gpsAddress ? "outline" : "default"}
+                  className="w-full"
+                  onClick={detectGPS}
+                  disabled={isDetectingGPS || isLoadingLocation}
+                >
+                  {isDetectingGPS || isLoadingLocation ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Navigation className="w-4 h-4 mr-2" />
                   )}
-                </div>
-              </div>
-            </Card>
+                  {gpsAddress
+                    ? (language === "hi" ? "फिर से लोकेशन लें" : "Re-detect Location")
+                    : isDetectingGPS || isLoadingLocation
+                      ? (language === "hi" ? "लोकेशन खोज रहे हैं..." : "Detecting...")
+                      : (language === "hi" ? "📍 अपनी लोकेशन दें" : "📍 Share Your Location")}
+                </Button>
 
-            <p className="text-xs text-muted-foreground mb-3 text-center">
-              {language === "hi" ? "या नीचे मैन्युअल खोजें" : "Or search manually below"}
-            </p>
+                {gpsAddress && (
+                  <div className="mt-3 p-3 rounded-lg bg-background border border-border">
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+                      <div>
+                        {gpsVillage && (
+                          <p className="text-sm font-semibold text-primary">{gpsVillage}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">{gpsAddress}</p>
+                        {gpsCoords && (
+                          <p className="text-[10px] text-muted-foreground/60 mt-1">
+                            {gpsCoords.lat.toFixed(6)}, {gpsCoords.lon.toFixed(6)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-            {/* Location Search */}
-            <Card className="p-4 shadow-card mb-4">
-              <Label className="mb-2 block font-medium">
-                <MapPin className="w-4 h-4 inline mr-1" />
-                {language === "hi" ? "शहर / जिला / तालुका / पिनकोड" : "City / District / Taluka / Pincode"} *
-              </Label>
-              <LocationSearchInput
-                value={locationText}
-                onChange={(cityValue, details) => {
-                  setLocationText(cityValue);
-                  if (details) setLocationDetails(details);
-                }}
-                required
-              />
-            </Card>
+                {!gpsAddress && !isDetectingGPS && (
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
+                    {language === "hi" 
+                      ? "लोकेशन परमिशन देने पर आपका गांव/मोहल्ला दिखेगा" 
+                      : "Grant location permission to detect your village/area"}
+                  </p>
+                )}
+              </Card>
+            </div>
 
-            <div className="flex-1" />
-
-            <div className="pt-4 safe-bottom">
+            {/* Continue Button - Fixed at bottom */}
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t border-border safe-bottom">
               <Button
                 className="w-full h-12 text-lg gradient-primary"
-                disabled={!userName.trim() || !locationText.trim()}
+                disabled={!canContinue}
                 onClick={handleContinue}
               >
                 {t("onboarding.continue")}
               </Button>
+              {!canContinue && (
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  {language === "hi" ? "सभी जानकारी भरें और GPS लोकेशन दें" : "Fill all fields and share GPS location"}
+                </p>
+              )}
             </div>
           </motion.div>
         )}
