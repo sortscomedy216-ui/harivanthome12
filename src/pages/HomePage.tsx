@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLocation as useAppLocation, cities } from "@/contexts/LocationContext";
+import { useLocation as useAppLocation } from "@/contexts/LocationContext";
 import { useProviders } from "@/hooks/useProviders";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -16,29 +16,17 @@ import {
   Home as HomeIcon,
   User,
   Plus,
+  MoreVertical,
 } from "lucide-react";
-import { Database } from "@/integrations/supabase/types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { allCategories, getCategoryIcon, getCategoryName, categoryGroups, getCategoriesByGroup } from "@/config/categories";
 
-type ServiceCategory = Database["public"]["Enums"]["service_category"];
-
-interface CategoryInfo {
-  id: ServiceCategory;
-  nameKey: string;
-  icon: string;
-  color: string;
-  bgColor: string;
-}
-
-const categories: CategoryInfo[] = [
-  { id: "plumber", nameKey: "category.plumber", icon: "🔧", color: "text-blue-600", bgColor: "bg-blue-100" },
-  { id: "electrician", nameKey: "category.electrician", icon: "⚡", color: "text-yellow-600", bgColor: "bg-yellow-100" },
-  { id: "carpenter", nameKey: "category.carpenter", icon: "🪚", color: "text-amber-700", bgColor: "bg-amber-100" },
-  { id: "painter", nameKey: "category.painter", icon: "🎨", color: "text-pink-600", bgColor: "bg-pink-100" },
-  { id: "cleaner", nameKey: "category.cleaner", icon: "✨", color: "text-green-600", bgColor: "bg-green-100" },
-  { id: "acRepair", nameKey: "category.acRepair", icon: "❄️", color: "text-cyan-600", bgColor: "bg-cyan-100" },
-  { id: "pestControl", nameKey: "category.pestControl", icon: "🐛", color: "text-red-600", bgColor: "bg-red-100" },
-  { id: "appliance", nameKey: "category.appliance", icon: "📺", color: "text-purple-600", bgColor: "bg-purple-100" },
-];
+const APP_VERSION = "1.0.0";
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -48,6 +36,7 @@ const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [tapCount, setTapCount] = useState(0);
   const [lastTapTime, setLastTapTime] = useState(0);
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   const handleTitleTap = () => {
     const now = Date.now();
@@ -66,9 +55,10 @@ const HomePage = () => {
 
   const { data: providers = [], isLoading } = useProviders();
 
-  const currentCity = cities.find((c) => c.id === city);
+  const userName = localStorage.getItem("harivant-username") || "";
+  const gpsVillage = localStorage.getItem("harivant-gps-village") || "";
 
-  const handleCategoryClick = (categoryId: ServiceCategory) => {
+  const handleCategoryClick = (categoryId: string) => {
     navigate(`/providers/${categoryId}`);
   };
 
@@ -76,9 +66,12 @@ const HomePage = () => {
     navigate(`/provider/${providerId}`);
   };
 
-  const filteredCategories = categories.filter((cat) =>
-    t(cat.nameKey).toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredCategories = allCategories.filter((cat) => {
+    const name = language === "hi" ? cat.hi : cat.en;
+    return name.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
+  const displayCategories = showAllCategories ? filteredCategories : filteredCategories.slice(0, 12);
 
   const topProviders = providers.slice(0, 5);
 
@@ -88,7 +81,7 @@ const HomePage = () => {
       <div className="gradient-primary px-4 pt-6 pb-8 safe-top">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 
+            <h1
               className="text-2xl font-bold text-primary-foreground select-none cursor-default"
               onClick={handleTitleTap}
             >
@@ -96,17 +89,28 @@ const HomePage = () => {
             </h1>
             <div className="flex items-center gap-1 text-primary-foreground/80 text-sm">
               <MapPin className="w-4 h-4" />
-              <span>{city || (language === "hi" ? "लोकेशन सेट करें" : "Set Location")}</span>
+              <span>
+                {userName ? `${userName}` : ""} 
+                {gpsVillage ? ` • ${gpsVillage}` : city ? ` • ${city}` : ""}
+              </span>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-            onClick={() => navigate("/register-provider")}
-          >
-            <User className="w-6 h-6" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-primary-foreground hover:bg-primary-foreground/10"
+              >
+                <MoreVertical className="w-6 h-6" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => navigate("/about")}>
+                {language === "hi" ? "हमारे बारे में" : "About"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Search Bar */}
@@ -126,25 +130,34 @@ const HomePage = () => {
         <Card className="p-4 shadow-card mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-lg">{t("home.categories")}</h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary text-xs"
+              onClick={() => setShowAllCategories(!showAllCategories)}
+            >
+              {showAllCategories 
+                ? (language === "hi" ? "कम दिखाएं" : "Show Less")
+                : (language === "hi" ? "सभी देखें" : "View All")}
+              <ChevronRight className={`w-4 h-4 ml-1 transition-transform ${showAllCategories ? "rotate-90" : ""}`} />
+            </Button>
           </div>
 
           <div className="grid grid-cols-4 gap-3">
-            {filteredCategories.map((category, index) => (
+            {displayCategories.map((category, index) => (
               <motion.div
                 key={category.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
+                transition={{ delay: index * 0.02 }}
                 className="flex flex-col items-center cursor-pointer"
                 onClick={() => handleCategoryClick(category.id)}
               >
-                <div
-                  className={`w-14 h-14 rounded-2xl ${category.bgColor} flex items-center justify-center text-2xl mb-2 transition-transform hover:scale-110`}
-                >
+                <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center text-2xl mb-2 transition-transform hover:scale-110">
                   {category.icon}
                 </div>
-                <span className="text-xs text-center font-medium text-foreground line-clamp-1">
-                  {t(category.nameKey)}
+                <span className="text-xs text-center font-medium text-foreground line-clamp-2 leading-tight">
+                  {language === "hi" ? category.hi : category.en}
                 </span>
               </motion.div>
             ))}
@@ -158,12 +171,6 @@ const HomePage = () => {
               <h2 className="font-semibold text-lg">{t("home.topProviders")}</h2>
               <p className="text-sm text-muted-foreground">{t("home.nearYou")}</p>
             </div>
-            {providers.length > 5 && (
-              <Button variant="ghost" size="sm" className="text-primary">
-                {t("home.viewAll")}
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            )}
           </div>
 
           <div className="space-y-3">
@@ -198,7 +205,7 @@ const HomePage = () => {
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center text-3xl">
-                        {categories.find((c) => c.id === provider.category)?.icon || "👤"}
+                        {getCategoryIcon(provider.category)}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
@@ -206,19 +213,19 @@ const HomePage = () => {
                           <span
                             className={`text-xs px-2 py-1 rounded-full ${
                               provider.available
-                                ? "bg-green-100 text-green-700"
-                                : "bg-red-100 text-red-700"
+                                ? "bg-secondary/10 text-secondary"
+                                : "bg-destructive/10 text-destructive"
                             }`}
                           >
                             {provider.available ? t("provider.available") : t("provider.unavailable")}
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground capitalize">
-                          {t(`category.${provider.category}`)}
+                          {getCategoryName(provider.category, language)}
                         </p>
                         <div className="flex items-center gap-4 mt-2">
                           <div className="flex items-center gap-1">
-                            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                            <Star className="w-4 h-4 text-accent fill-accent" />
                             <span className="text-sm font-medium">{Number(provider.rating).toFixed(1)}</span>
                             <span className="text-xs text-muted-foreground">
                               ({provider.review_count})
@@ -237,6 +244,12 @@ const HomePage = () => {
           </div>
         </div>
 
+        {/* App Version */}
+        <div className="text-center py-4">
+          <p className="text-xs text-muted-foreground">
+            {language === "hi" ? "हरिवंत" : "Harivant"} v{APP_VERSION}
+          </p>
+        </div>
       </div>
 
       {/* Bottom Navigation */}
@@ -254,9 +267,9 @@ const HomePage = () => {
           >
             <Plus className="w-6 h-6" />
           </Button>
-          <Button 
-            variant="ghost" 
-            className="flex flex-col items-center gap-1 h-auto py-2 text-muted-foreground" 
+          <Button
+            variant="ghost"
+            className="flex flex-col items-center gap-1 h-auto py-2 text-muted-foreground"
             onClick={() => navigate("/profile")}
           >
             <User className="w-5 h-5" />

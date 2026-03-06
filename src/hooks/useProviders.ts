@@ -1,9 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation as useAppLocation } from "@/contexts/LocationContext";
-import { Database } from "@/integrations/supabase/types";
-
-type ServiceCategory = Database["public"]["Enums"]["service_category"];
 
 export interface ServiceProvider {
   id: string;
@@ -11,7 +8,7 @@ export interface ServiceProvider {
   phone: string;
   email: string | null;
   photo_url: string | null;
-  category: ServiceCategory;
+  category: string;
   skills: string[];
   experience: number;
   location: string | null;
@@ -44,7 +41,7 @@ export const useProviders = (category?: string) => {
         .eq("status", "approved");
 
       if (category) {
-        query = query.eq("category", category as ServiceCategory);
+        query = query.eq("category", category as any);
       }
 
       // Only filter by city if GPS is not available

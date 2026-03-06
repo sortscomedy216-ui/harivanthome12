@@ -32,32 +32,19 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Database } from "@/integrations/supabase/types";
-
-type ServiceCategory = Database["public"]["Enums"]["service_category"];
-
-const categories: { id: ServiceCategory; hi: string; en: string }[] = [
-  { id: "plumber", hi: "प्लंबर", en: "Plumber" },
-  { id: "electrician", hi: "इलेक्ट्रीशियन", en: "Electrician" },
-  { id: "carpenter", hi: "कारपेंटर", en: "Carpenter" },
-  { id: "painter", hi: "पेंटर", en: "Painter" },
-  { id: "cleaner", hi: "सफाई कर्मचारी", en: "Cleaner" },
-  { id: "acRepair", hi: "AC रिपेयर", en: "AC Repair" },
-  { id: "pestControl", hi: "पेस्ट कंट्रोल", en: "Pest Control" },
-  { id: "appliance", hi: "अप्लायंस रिपेयर", en: "Appliance Repair" },
-];
+import { allCategories } from "@/config/categories";
 
 const ProviderRegistrationPage = () => {
   const navigate = useNavigate();
   const { language, t } = useLanguage();
   const { city, coordinates, requestLocation, isLoadingLocation } = useAppLocation();
   const { user } = useAuth();
-  
+
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     email: "",
-    category: "" as ServiceCategory | "",
+    category: "",
     experience: "",
     location: "",
     city: city || "",
@@ -88,7 +75,7 @@ const ProviderRegistrationPage = () => {
         () => {
           toast.error(language === "hi" ? "लोकेशन प्राप्त करने में त्रुटि" : "Error getting location");
         },
-        { enableHighAccuracy: true, timeout: 10000 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     }
   };
@@ -106,14 +93,14 @@ const ProviderRegistrationPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.phone || !formData.category || !formData.experience || !formData.city) {
       toast.error(language === "hi" ? "कृपया सभी आवश्यक फ़ील्ड भरें" : "Please fill all required fields");
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
       const { error } = await supabase
         .from("service_providers")
@@ -122,7 +109,7 @@ const ProviderRegistrationPage = () => {
           name: formData.name,
           phone: formData.phone,
           email: formData.email || null,
-          category: formData.category as ServiceCategory,
+          category: formData.category as any,
           experience: parseInt(formData.experience) || 0,
           location: formData.location || null,
           city: formData.city,
@@ -134,7 +121,7 @@ const ProviderRegistrationPage = () => {
         });
 
       if (error) throw error;
-      
+
       setIsSubmitted(true);
       toast.success(language === "hi" ? "रजिस्ट्रेशन सफल!" : "Registration successful!");
     } catch (error: any) {
@@ -152,11 +139,11 @@ const ProviderRegistrationPage = () => {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", duration: 0.5 }}
-          className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center mb-6"
+          className="w-24 h-24 rounded-full bg-secondary/10 flex items-center justify-center mb-6"
         >
-          <CheckCircle2 className="w-12 h-12 text-green-600" />
+          <CheckCircle2 className="w-12 h-12 text-secondary" />
         </motion.div>
-        
+
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -165,24 +152,24 @@ const ProviderRegistrationPage = () => {
         >
           {language === "hi" ? "रजिस्ट्रेशन सफल!" : "Registration Successful!"}
         </motion.h1>
-        
+
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           className="text-muted-foreground text-center mb-8"
         >
-          {language === "hi" 
+          {language === "hi"
             ? "आपका अनुरोध अनुमोदन के लिए भेज दिया गया है। कृपया प्रतीक्षा करें।"
             : "Your request has been sent for approval. Please wait."}
         </motion.p>
 
-        <Card className="p-4 bg-amber-50 border-amber-200 mb-6 w-full max-w-sm">
+        <Card className="p-4 bg-accent/10 border-accent/20 mb-6 w-full max-w-sm">
           <div className="flex items-center gap-3">
-            <Clock className="w-5 h-5 text-amber-600" />
+            <Clock className="w-5 h-5 text-accent" />
             <div>
-              <p className="font-medium text-amber-800">{t("register.pending")}</p>
-              <p className="text-sm text-amber-600">
+              <p className="font-medium text-accent">{t("register.pending")}</p>
+              <p className="text-sm text-muted-foreground">
                 {language === "hi" ? "24-48 घंटे में अपडेट मिलेगा" : "Update within 24-48 hours"}
               </p>
             </div>
@@ -220,7 +207,7 @@ const ProviderRegistrationPage = () => {
         </div>
       </div>
 
-      {/* Login prompt for non-authenticated users */}
+      {/* Login prompt */}
       {!user && (
         <div className="px-4 pt-4">
           <Card className="p-4 bg-primary/5 border-primary/20">
@@ -228,7 +215,7 @@ const ProviderRegistrationPage = () => {
               <LogIn className="w-5 h-5 text-primary" />
               <div className="flex-1">
                 <p className="text-sm">
-                  {language === "hi" 
+                  {language === "hi"
                     ? "लॉगिन करें अपने अनुरोध को ट्रैक करने के लिए"
                     : "Login to track your application"}
                 </p>
@@ -266,7 +253,7 @@ const ProviderRegistrationPage = () => {
             </div>
             <div className="flex-1">
               <p className="text-sm text-muted-foreground">
-                {language === "hi" 
+                {language === "hi"
                   ? "अपनी एक साफ़ फ़ोटो अपलोड करें"
                   : "Upload a clear photo of yourself"}
               </p>
@@ -329,10 +316,10 @@ const ProviderRegistrationPage = () => {
                 <Briefcase className="w-5 h-5 mr-2 text-muted-foreground" />
                 <SelectValue placeholder={language === "hi" ? "सेवा चुनें" : "Select service"} />
               </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
+              <SelectContent className="max-h-[300px]">
+                {allCategories.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>
-                    {language === "hi" ? cat.hi : cat.en}
+                    {cat.icon} {language === "hi" ? cat.hi : cat.en}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -405,7 +392,7 @@ const ProviderRegistrationPage = () => {
             </div>
           </div>
 
-          {/* GPS Location Capture */}
+          {/* GPS Location */}
           <div>
             <Label>{language === "hi" ? "GPS लोकेशन" : "GPS Location"}</Label>
             <div className="mt-1.5">
@@ -420,15 +407,15 @@ const ProviderRegistrationPage = () => {
                 ) : (
                   <Navigation className="w-4 h-4 mr-2" />
                 )}
-                {formData.latitude 
+                {formData.latitude
                   ? (language === "hi" ? "लोकेशन प्राप्त ✓" : "Location Captured ✓")
                   : (language === "hi" ? "मेरी लोकेशन लें" : "Get My Location")}
               </Button>
               {formData.latitude && (
                 <p className="text-xs text-muted-foreground mt-2 text-center">
-                  {language === "hi" 
-                    ? "आपकी लोकेशन सेव हो गई है। ग्राहक आपको आसानी से ढूंढ पाएंगे।"
-                    : "Your location is saved. Customers can easily find you."}
+                  {language === "hi"
+                    ? "आपकी लोकेशन सेव हो गई है।"
+                    : "Your location is saved."}
                 </p>
               )}
             </div>
@@ -440,7 +427,7 @@ const ProviderRegistrationPage = () => {
           <Label htmlFor="about">{language === "hi" ? "अपने बारे में" : "About yourself"}</Label>
           <Textarea
             id="about"
-            placeholder={language === "hi" 
+            placeholder={language === "hi"
               ? "अपने अनुभव और कौशल के बारे में लिखें..."
               : "Write about your experience and skills..."}
             value={formData.about}
@@ -449,7 +436,7 @@ const ProviderRegistrationPage = () => {
           />
         </Card>
 
-        {/* Submit Button */}
+        {/* Submit */}
         <Button
           type="submit"
           className="w-full h-12 text-lg gradient-primary"

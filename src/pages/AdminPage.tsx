@@ -26,17 +26,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
-
-const categoryNames: Record<string, { hi: string; en: string }> = {
-  plumber: { hi: "प्लंबर", en: "Plumber" },
-  electrician: { hi: "इलेक्ट्रीशियन", en: "Electrician" },
-  carpenter: { hi: "कारपेंटर", en: "Carpenter" },
-  painter: { hi: "पेंटर", en: "Painter" },
-  cleaner: { hi: "सफाई कर्मचारी", en: "Cleaner" },
-  acRepair: { hi: "AC रिपेयर", en: "AC Repair" },
-  pestControl: { hi: "पेस्ट कंट्रोल", en: "Pest Control" },
-  appliance: { hi: "अप्लायंस रिपेयर", en: "Appliance Repair" },
-};
+import { getCategoryName } from "@/config/categories";
 
 const AdminPage = () => {
   const navigate = useNavigate();
@@ -321,7 +311,7 @@ const AdminPage = () => {
                             <div>
                               <h3 className="font-semibold">{provider.name}</h3>
                               <p className="text-sm text-muted-foreground">
-                                {categoryNames[provider.category]?.[language] || provider.category}
+                                {getCategoryName(provider.category, language)}
                               </p>
                             </div>
                             <span className="text-xs text-muted-foreground">

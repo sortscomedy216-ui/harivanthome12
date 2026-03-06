@@ -203,6 +203,45 @@ export type Database = {
         | "acRepair"
         | "pestControl"
         | "appliance"
+        | "refrigeratorRepair"
+        | "washingMachineRepair"
+        | "microwaveRepair"
+        | "roRepair"
+        | "tvRepair"
+        | "computerRepair"
+        | "mobileRepair"
+        | "cctvInstallation"
+        | "wifiSetup"
+        | "solarPanel"
+        | "waterTankCleaning"
+        | "houseCleaning"
+        | "bathroomCleaning"
+        | "kitchenCleaning"
+        | "sofaCleaning"
+        | "carpetCleaning"
+        | "windowCleaning"
+        | "gardening"
+        | "lawnMowing"
+        | "treeCutting"
+        | "packersMovers"
+        | "furnitureAssembly"
+        | "doorLockRepair"
+        | "glassRepair"
+        | "tileMarbleRepair"
+        | "mason"
+        | "falseCeiling"
+        | "aluminiumWork"
+        | "weldingWork"
+        | "curtainInstallation"
+        | "interiorDesign"
+        | "homeRenovation"
+        | "generatorRepair"
+        | "inverterRepair"
+        | "gasStoveRepair"
+        | "chimneyRepair"
+        | "geyserRepair"
+        | "borewellRepair"
+        | "drainCleaning"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -341,6 +380,45 @@ export const Constants = {
         "acRepair",
         "pestControl",
         "appliance",
+        "refrigeratorRepair",
+        "washingMachineRepair",
+        "microwaveRepair",
+        "roRepair",
+        "tvRepair",
+        "computerRepair",
+        "mobileRepair",
+        "cctvInstallation",
+        "wifiSetup",
+        "solarPanel",
+        "waterTankCleaning",
+        "houseCleaning",
+        "bathroomCleaning",
+        "kitchenCleaning",
+        "sofaCleaning",
+        "carpetCleaning",
+        "windowCleaning",
+        "gardening",
+        "lawnMowing",
+        "treeCutting",
+        "packersMovers",
+        "furnitureAssembly",
+        "doorLockRepair",
+        "glassRepair",
+        "tileMarbleRepair",
+        "mason",
+        "falseCeiling",
+        "aluminiumWork",
+        "weldingWork",
+        "curtainInstallation",
+        "interiorDesign",
+        "homeRenovation",
+        "generatorRepair",
+        "inverterRepair",
+        "gasStoveRepair",
+        "chimneyRepair",
+        "geyserRepair",
+        "borewellRepair",
+        "drainCleaning",
       ],
     },
   },
