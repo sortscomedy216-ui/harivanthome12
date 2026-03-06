@@ -24,20 +24,7 @@ import {
   Navigation,
   Loader2,
 } from "lucide-react";
-import { Database } from "@/integrations/supabase/types";
-
-type ServiceCategory = Database["public"]["Enums"]["service_category"];
-
-const categoryNames: Record<ServiceCategory, { hi: string; en: string; icon: string }> = {
-  plumber: { hi: "प्लंबर", en: "Plumber", icon: "🔧" },
-  electrician: { hi: "इलेक्ट्रीशियन", en: "Electrician", icon: "⚡" },
-  carpenter: { hi: "कारपेंटर", en: "Carpenter", icon: "🪚" },
-  painter: { hi: "पेंटर", en: "Painter", icon: "🎨" },
-  cleaner: { hi: "सफाई कर्मचारी", en: "Cleaner", icon: "✨" },
-  acRepair: { hi: "AC रिपेयर", en: "AC Repair", icon: "❄️" },
-  pestControl: { hi: "पेस्ट कंट्रोल", en: "Pest Control", icon: "🐛" },
-  appliance: { hi: "अप्लायंस रिपेयर", en: "Appliance Repair", icon: "📺" },
-};
+import { getCategoryById, getCategoryName, getCategoryIcon } from "@/config/categories";
 
 const ProvidersListPage = () => {
   const { category } = useParams<{ category: string }>();
@@ -50,7 +37,7 @@ const ProvidersListPage = () => {
 
   const { data: allProviders = [], isLoading } = useProviders(category);
 
-  const categoryInfo = category ? categoryNames[category as ServiceCategory] : null;
+  const categoryInfo = category ? getCategoryById(category) : null;
 
   // Filter and sort providers
   const filteredProviders = allProviders
@@ -94,7 +81,7 @@ const ProvidersListPage = () => {
           </Button>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary-foreground/20 flex items-center justify-center text-xl">
-              {categoryInfo?.icon}
+              {categoryInfo?.icon || "🔍"}
             </div>
             <div>
               <h1 className="text-xl font-bold text-primary-foreground">
@@ -143,7 +130,6 @@ const ProvidersListPage = () => {
           {language === "hi" ? "उपलब्ध" : "Available"}
         </Button>
 
-        {/* Location Button */}
         <Button
           variant={coordinates ? "outline" : "default"}
           size="sm"
@@ -156,7 +142,7 @@ const ProvidersListPage = () => {
           ) : (
             <Navigation className="w-4 h-4 mr-1" />
           )}
-          {coordinates 
+          {coordinates
             ? (language === "hi" ? "लोकेशन ✓" : "Location ✓")
             : (language === "hi" ? "लोकेशन" : "Location")}
         </Button>
@@ -231,8 +217,8 @@ const ProvidersListPage = () => {
                       <span
                         className={`text-xs px-2 py-1 rounded-full shrink-0 ${
                           provider.available
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
+                            ? "bg-secondary/10 text-secondary"
+                            : "bg-destructive/10 text-destructive"
                         }`}
                       >
                         {provider.available ? t("provider.available") : t("provider.unavailable")}
@@ -241,7 +227,7 @@ const ProvidersListPage = () => {
 
                     <div className="flex items-center gap-4 mt-2">
                       <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                        <Star className="w-4 h-4 text-accent fill-accent" />
                         <span className="text-sm font-medium">{Number(provider.rating).toFixed(1)}</span>
                         <span className="text-xs text-muted-foreground">
                           ({provider.review_count})
@@ -257,9 +243,9 @@ const ProvidersListPage = () => {
                         {provider.price_per_hour > 0 ? `₹${provider.price_per_hour}/hr` : ""}
                       </span>
                       <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        <Button
+                          size="sm"
+                          variant="outline"
                           className="h-8"
                           onClick={(e) => {
                             e.stopPropagation();

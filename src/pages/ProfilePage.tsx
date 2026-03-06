@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, User, MapPin, Clock, CheckCircle2, XCircle, Loader2, Home as HomeIcon, Plus, Trash2, Navigation } from "lucide-react";
 import { toast } from "sonner";
+import { getCategoryName } from "@/config/categories";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -192,7 +193,7 @@ const ProfilePage = () => {
             <div className="mt-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">{language === "hi" ? "सेवा" : "Service"}</span>
-                <span className="font-medium capitalize">{providerProfile.category}</span>
+                <span className="font-medium capitalize">{getCategoryName(providerProfile.category, language)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">{language === "hi" ? "अनुभव" : "Experience"}</span>

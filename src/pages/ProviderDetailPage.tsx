@@ -14,6 +14,7 @@ import {
   Heart,
 } from "lucide-react";
 import { useState } from "react";
+import { getCategoryName } from "@/config/categories";
 
 const ProviderDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -109,7 +110,7 @@ const ProviderDetailPage = () => {
                     )}
                   </div>
                   <p className="text-muted-foreground capitalize">
-                    {t(`category.${provider.category}`)}
+                    {getCategoryName(provider.category, language)}
                   </p>
                 </div>
                 <span
