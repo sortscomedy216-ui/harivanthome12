@@ -11,7 +11,6 @@ import { Home, Wrench, Zap, MapPin, Navigation, Loader2, User, ChevronDown } fro
 
 type OnboardingStep = "splash" | "language" | "userinfo";
 
-// Indian states list
 const indianStates = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
   "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
@@ -36,15 +35,12 @@ const SplashScreen = () => {
   const [step, setStep] = useState<OnboardingStep>("splash");
 
   const [userName, setUserName] = useState(() => localStorage.getItem("harivant-username") || "");
-  
-  // Location fields
   const [selectedState, setSelectedState] = useState(() => localStorage.getItem("harivant-state") || "");
   const [pincode, setPincode] = useState(() => localStorage.getItem("harivant-pincode") || "");
   const [pincodeResults, setPincodeResults] = useState<PincodeResult[]>([]);
   const [selectedPincodeResult, setSelectedPincodeResult] = useState<PincodeResult | null>(null);
   const [isPincodeLooking, setIsPincodeLooking] = useState(false);
   
-  // GPS
   const [gpsAddress, setGpsAddress] = useState("");
   const [gpsVillage, setGpsVillage] = useState("");
   const [isDetectingGPS, setIsDetectingGPS] = useState(false);
@@ -60,14 +56,14 @@ const SplashScreen = () => {
   useEffect(() => {
     const onboardingDone = localStorage.getItem("harivant-onboarding");
     if (onboardingDone && isLocationSet) {
-      navigate("/home");
-      return;
+      // Always show splash for 2 seconds even if onboarding done
+      const timer = setTimeout(() => navigate("/home"), 2500);
+      return () => clearTimeout(timer);
     }
     const timer = setTimeout(() => setStep("language"), 2500);
     return () => clearTimeout(timer);
   }, [isLocationSet, navigate]);
 
-  // Lookup pincode via India Post API / Nominatim
   const lookupPincode = useCallback(async (code: string) => {
     if (code.length !== 6) {
       setPincodeResults([]);
@@ -75,43 +71,23 @@ const SplashScreen = () => {
     }
     setIsPincodeLooking(true);
     try {
-      // Use India Post API
       const res = await fetch(`https://api.postalpincode.in/pincode/${code}`);
       const data = await res.json();
       
       if (data?.[0]?.Status === "Success" && data[0].PostOffice) {
         const offices = data[0].PostOffice;
-        const results: PincodeResult[] = offices.slice(0, 3).map((po: any) => ({
+        const results: PincodeResult[] = offices.slice(0, 5).map((po: any) => ({
           district: po.District || "",
           taluka: po.Block || po.Division || "",
           area: po.Name || "",
         }));
         
-        // Deduplicate
         const unique = results.filter(
           (v, i, a) => a.findIndex((t) => t.district === v.district && t.taluka === v.taluka && t.area === v.area) === i
         );
         setPincodeResults(unique);
       } else {
-        // Fallback to Nominatim
-        const nomRes = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&addressdetails=1&limit=3&postalcode=${code}`,
-          { headers: { "Accept-Language": "hi,en" } }
-        );
-        const nomData = await nomRes.json();
-        if (nomData.length > 0) {
-          const results: PincodeResult[] = nomData.map((item: any) => {
-            const addr = item.address || {};
-            return {
-              district: addr.county || addr.state_district || "",
-              taluka: addr.suburb || addr.town || addr.village || "",
-              area: addr.city || addr.town || addr.village || addr.hamlet || "",
-            };
-          }).filter((r: PincodeResult) => r.district || r.area);
-          setPincodeResults(results);
-        } else {
-          setPincodeResults([]);
-        }
+        setPincodeResults([]);
       }
     } catch {
       setPincodeResults([]);
@@ -120,11 +96,9 @@ const SplashScreen = () => {
     }
   }, []);
 
-  // Auto-detect GPS location
   const detectGPS = useCallback(async () => {
     setIsDetectingGPS(true);
     
-    // Request permission and get position
     if (!navigator.geolocation) {
       setIsDetectingGPS(false);
       return;
@@ -153,7 +127,6 @@ const SplashScreen = () => {
             const parts = [road, village, town].filter(Boolean);
             setGpsAddress(parts.join(", ") || data.display_name?.split(",").slice(0, 3).join(", ") || "");
             
-            // Auto-fill state and pincode if not set
             if (!selectedState && addr.state) {
               const matchedState = indianStates.find(s => 
                 s.toLowerCase() === addr.state.toLowerCase() || 
@@ -175,7 +148,6 @@ const SplashScreen = () => {
       (error) => {
         console.error("GPS error:", error);
         setIsDetectingGPS(false);
-        // Request location through context as fallback
         requestLocation();
       },
       {
@@ -186,11 +158,9 @@ const SplashScreen = () => {
     );
   }, [selectedState, pincode, requestLocation, lookupPincode]);
 
-  // When coordinates come from context (fallback)
   useEffect(() => {
     if (coordinates && step === "userinfo" && !gpsCoords) {
       setGpsCoords({ lat: coordinates.latitude, lon: coordinates.longitude });
-      // Reverse geocode
       (async () => {
         setIsDetectingGPS(true);
         try {
@@ -264,7 +234,7 @@ const SplashScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 select-none">
       <AnimatePresence mode="wait">
         {step === "splash" && (
           <motion.div
@@ -313,9 +283,9 @@ const SplashScreen = () => {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.8 }}
-              className="mt-2 text-lg text-muted-foreground text-center"
+              className="mt-2 text-lg text-muted-foreground text-center font-medium"
             >
-              घर की सेवाएं एक क्लिक पर
+              Harivant Home Services
             </motion.p>
 
             <motion.div
@@ -407,7 +377,7 @@ const SplashScreen = () => {
             </div>
 
             <div className="space-y-4 flex-1 overflow-y-auto pb-24">
-              {/* Name Input */}
+              {/* Name */}
               <Card className="p-4 shadow-card">
                 <Label className="mb-2 block font-medium">
                   {language === "hi" ? "आपका नाम" : "Your Name"} *
@@ -424,7 +394,7 @@ const SplashScreen = () => {
                 </div>
               </Card>
 
-              {/* State Selection */}
+              {/* State */}
               <Card className="p-4 shadow-card">
                 <Label className="mb-2 block font-medium">
                   <MapPin className="w-4 h-4 inline mr-1" />
@@ -466,7 +436,6 @@ const SplashScreen = () => {
                   </div>
                 )}
 
-                {/* Pincode results - auto fill options */}
                 {pincodeResults.length > 0 && (
                   <div className="mt-3 space-y-2">
                     <p className="text-xs font-medium text-muted-foreground">
@@ -497,28 +466,27 @@ const SplashScreen = () => {
                   </div>
                 )}
 
-                {/* Show selected info */}
                 {selectedPincodeResult && (
                   <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="grid grid-cols-3 gap-2 text-sm">
                       <div>
-                        <span className="text-muted-foreground">{language === "hi" ? "जिला:" : "District:"}</span>
-                        <p className="font-medium">{selectedPincodeResult.district}</p>
+                        <span className="text-muted-foreground text-xs">{language === "hi" ? "जिला" : "District"}</span>
+                        <p className="font-medium text-sm">{selectedPincodeResult.district}</p>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">{language === "hi" ? "तालुका:" : "Taluka:"}</span>
-                        <p className="font-medium">{selectedPincodeResult.taluka || "-"}</p>
+                        <span className="text-muted-foreground text-xs">{language === "hi" ? "तालुका" : "Taluka"}</span>
+                        <p className="font-medium text-sm">{selectedPincodeResult.taluka || "-"}</p>
                       </div>
-                      <div className="col-span-2">
-                        <span className="text-muted-foreground">{language === "hi" ? "क्षेत्र:" : "Area:"}</span>
-                        <p className="font-medium">{selectedPincodeResult.area}</p>
+                      <div>
+                        <span className="text-muted-foreground text-xs">{language === "hi" ? "क्षेत्र" : "Area"}</span>
+                        <p className="font-medium text-sm">{selectedPincodeResult.area}</p>
                       </div>
                     </div>
                   </div>
                 )}
               </Card>
 
-              {/* GPS Location - Phone ki location */}
+              {/* GPS Location */}
               <Card className={`p-4 shadow-card border-2 ${
                 gpsAddress ? "border-primary bg-primary/5" : "border-dashed border-muted-foreground/30"
               }`}>
@@ -575,7 +543,7 @@ const SplashScreen = () => {
               </Card>
             </div>
 
-            {/* Continue Button - Fixed at bottom */}
+            {/* Continue Button */}
             <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t border-border safe-bottom">
               <Button
                 className="w-full h-12 text-lg gradient-primary"

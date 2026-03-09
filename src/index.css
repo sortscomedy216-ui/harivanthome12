@@ -36,7 +36,6 @@
 
     --radius: 0.75rem;
 
-    /* Custom Harivant Colors */
     --harivant-blue: 199 89% 48%;
     --harivant-green: 152 69% 40%;
     --harivant-orange: 38 92% 50%;
@@ -101,9 +100,22 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', 'Noto Sans Devanagari', system-ui, sans-serif;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  /* Safe area for PWA */
+  /* Allow text selection in input/textarea */
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+
   .safe-top {
     padding-top: env(safe-area-inset-top);
   }

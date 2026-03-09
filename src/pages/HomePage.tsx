@@ -16,7 +16,8 @@ import {
   Home as HomeIcon,
   User,
   Plus,
-  MoreVertical,
+  Settings,
+  Navigation,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -24,7 +25,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { allCategories, getCategoryIcon, getCategoryName, categoryGroups, getCategoriesByGroup } from "@/config/categories";
+import { allCategories, getCategoryIcon, getCategoryName } from "@/config/categories";
 
 const APP_VERSION = "1.0.0";
 
@@ -72,17 +73,22 @@ const HomePage = () => {
   });
 
   const displayCategories = showAllCategories ? filteredCategories : filteredCategories.slice(0, 12);
-
   const topProviders = providers.slice(0, 5);
 
+  const formatDistance = (distance: number | null): string => {
+    if (distance === null) return "";
+    if (distance < 1) return `${Math.round(distance * 1000)} m`;
+    return `${distance.toFixed(1)} km`;
+  };
+
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-20 select-none">
       {/* Header */}
       <div className="gradient-primary px-4 pt-6 pb-8 safe-top">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1
-              className="text-2xl font-bold text-primary-foreground select-none cursor-default"
+              className="text-2xl font-bold text-primary-foreground cursor-default"
               onClick={handleTitleTap}
             >
               {t("app.name")}
@@ -102,7 +108,7 @@ const HomePage = () => {
                 size="icon"
                 className="text-primary-foreground hover:bg-primary-foreground/10"
               >
-                <MoreVertical className="w-6 h-6" />
+                <Settings className="w-6 h-6" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -231,8 +237,14 @@ const HomePage = () => {
                               ({provider.review_count})
                             </span>
                           </div>
+                          {provider.distance !== null && (
+                            <span className="flex items-center gap-1 text-xs text-primary font-medium">
+                              <Navigation className="w-3 h-3" />
+                              {formatDistance(provider.distance)}
+                            </span>
+                          )}
                           <span className="text-xs text-muted-foreground">
-                            {provider.experience} {t("provider.years")} {t("provider.experience")}
+                            {provider.experience} {t("provider.years")}
                           </span>
                         </div>
                       </div>

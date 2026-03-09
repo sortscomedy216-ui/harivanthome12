@@ -137,20 +137,14 @@ const ProviderDetailPage = () => {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-3 mt-5 pt-5 border-t border-border">
+          <div className="grid grid-cols-2 gap-3 mt-5 pt-5 border-t border-border">
             <div className="text-center">
               <div className="text-2xl font-bold text-primary">{provider.experience}</div>
               <div className="text-xs text-muted-foreground">{t("provider.years")} {t("provider.experience")}</div>
             </div>
-            <div className="text-center border-x border-border">
+            <div className="text-center border-l border-border">
               <div className="text-2xl font-bold text-primary">{provider.review_count}</div>
               <div className="text-xs text-muted-foreground">{language === "hi" ? "रिव्यू" : "Reviews"}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">
-                {provider.price_per_hour > 0 ? `₹${provider.price_per_hour}` : "-"}
-              </div>
-              <div className="text-xs text-muted-foreground">{language === "hi" ? "प्रति घंटा" : "per hour"}</div>
             </div>
           </div>
         </Card>

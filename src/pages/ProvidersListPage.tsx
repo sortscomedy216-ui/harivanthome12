@@ -238,10 +238,7 @@ const ProvidersListPage = () => {
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="font-semibold text-primary">
-                        {provider.price_per_hour > 0 ? `₹${provider.price_per_hour}/hr` : ""}
-                      </span>
+                    <div className="flex items-center justify-end mt-3">
                       <div className="flex gap-2">
                         <Button
                           size="sm"
