@@ -18,15 +18,16 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  BarChart3,
   Search,
   Shield,
-  Eye,
   Phone,
   MapPin,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getCategoryName } from "@/config/categories";
+import { getCategoryName, allCategories } from "@/config/categories";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const AdminPage = () => {
   const navigate = useNavigate();
@@ -36,14 +37,30 @@ const AdminPage = () => {
   const [password, setPassword] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [deleteCategory, setDeleteCategory] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: pendingProviders = [], refetch: refetchPending } = usePendingProviders();
   const { data: stats, refetch: refetchStats } = useAdminStats();
 
+  // Fetch all approved providers for delete management
+  const { data: allApproved = [] } = useQuery({
+    queryKey: ["all-approved-providers"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("service_providers")
+        .select("*")
+        .eq("status", "approved")
+        .order("category", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!isAdmin,
+  });
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
-    
     try {
       const { error } = await signInWithEmail(email, password);
       if (error) throw error;
@@ -60,15 +77,14 @@ const AdminPage = () => {
       .from("service_providers")
       .update({ status: "approved" })
       .eq("id", providerId);
-
     if (error) {
       toast.error(language === "hi" ? "त्रुटि हुई" : "Error occurred");
       return;
     }
-
     toast.success(language === "hi" ? "सेवा प्रदाता अनुमोदित!" : "Provider approved!");
     refetchPending();
     refetchStats();
+    queryClient.invalidateQueries({ queryKey: ["all-approved-providers"] });
   };
 
   const handleReject = async (providerId: string) => {
@@ -76,14 +92,34 @@ const AdminPage = () => {
       .from("service_providers")
       .update({ status: "rejected" })
       .eq("id", providerId);
-
     if (error) {
       toast.error(language === "hi" ? "त्रुटि हुई" : "Error occurred");
       return;
     }
-
     toast.info(language === "hi" ? "सेवा प्रदाता अस्वीकृत" : "Provider rejected");
     refetchPending();
+    refetchStats();
+  };
+
+  const handleDeleteProvider = async (providerId: string, providerName: string) => {
+    const confirmed = window.confirm(
+      language === "hi" 
+        ? `क्या आप "${providerName}" की प्रोफ़ाइल हटाना चाहते हैं?`
+        : `Delete "${providerName}"'s profile?`
+    );
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("service_providers")
+      .delete()
+      .eq("id", providerId);
+
+    if (error) {
+      toast.error(language === "hi" ? "हटाने में त्रुटि" : "Error deleting");
+      return;
+    }
+    toast.success(language === "hi" ? "प्रोफ़ाइल हटा दी गई" : "Profile deleted");
+    queryClient.invalidateQueries({ queryKey: ["all-approved-providers"] });
     refetchStats();
   };
 
@@ -91,24 +127,25 @@ const AdminPage = () => {
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Show loading
+  // Get providers by selected category for delete panel
+  const categoryProviders = deleteCategory
+    ? allApproved.filter((p) => p.category === deleteCategory)
+    : [];
+
+  // Get categories that have approved providers
+  const categoriesWithProviders = [...new Set(allApproved.map((p) => p.category))];
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full"
-        />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  // Show login if not authenticated or not admin
   if (!user || !isAdmin) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
-        {/* Header */}
+      <div className="min-h-screen bg-background flex flex-col select-none">
         <div className="gradient-primary px-4 pt-4 pb-6 safe-top">
           <div className="flex items-center gap-3">
             <Button
@@ -120,9 +157,7 @@ const AdminPage = () => {
               <ArrowLeft className="w-6 h-6" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-primary-foreground">
-                {t("admin.login")}
-              </h1>
+              <h1 className="text-xl font-bold text-primary-foreground">{t("admin.login")}</h1>
               <p className="text-sm text-primary-foreground/80">
                 {language === "hi" ? "एडमिन पैनल में लॉगिन करें" : "Login to admin panel"}
               </p>
@@ -140,9 +175,7 @@ const AdminPage = () => {
 
             {user && !isAdmin && (
               <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-                {language === "hi" 
-                  ? "आपके पास एडमिन अधिकार नहीं हैं।"
-                  : "You don't have admin privileges."}
+                {language === "hi" ? "आपके पास एडमिन अधिकार नहीं हैं।" : "You don't have admin privileges."}
               </div>
             )}
 
@@ -159,7 +192,6 @@ const AdminPage = () => {
                   required
                 />
               </div>
-
               <div>
                 <Label htmlFor="password">{t("auth.password")}</Label>
                 <Input
@@ -172,23 +204,10 @@ const AdminPage = () => {
                   required
                 />
               </div>
-
               <Button type="submit" className="w-full h-11 gradient-primary" disabled={isLoggingIn}>
-                {isLoggingIn ? (
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full"
-                  />
-                ) : (
-                  t("auth.login")
-                )}
+                {isLoggingIn ? <Loader2 className="w-5 h-5 animate-spin" /> : t("auth.login")}
               </Button>
             </form>
-
-            <p className="text-xs text-center text-muted-foreground mt-4">
-              {language === "hi" ? "एडमिन खाते से लॉगिन करें" : "Login with admin account"}
-            </p>
           </Card>
         </div>
       </div>
@@ -196,7 +215,7 @@ const AdminPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-6">
+    <div className="min-h-screen bg-background pb-6 select-none">
       {/* Header */}
       <div className="gradient-primary px-4 pt-4 pb-6 safe-top">
         <div className="flex items-center justify-between mb-4">
@@ -210,9 +229,7 @@ const AdminPage = () => {
               <ArrowLeft className="w-6 h-6" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-primary-foreground">
-                {t("admin.title")}
-              </h1>
+              <h1 className="text-xl font-bold text-primary-foreground">{t("admin.title")}</h1>
               <p className="text-sm text-primary-foreground/80">
                 {language === "hi" ? "हरिवंत एडमिन" : "Harivant Admin"}
               </p>
@@ -229,7 +246,7 @@ const AdminPage = () => {
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats */}
       <div className="px-4 -mt-4">
         <div className="grid grid-cols-2 gap-3">
           <Card className="p-4 shadow-card">
@@ -243,7 +260,6 @@ const AdminPage = () => {
               </div>
             </div>
           </Card>
-
           <Card className="p-4 shadow-card">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
@@ -263,17 +279,21 @@ const AdminPage = () => {
         <Tabs defaultValue="pending">
           <TabsList className="w-full">
             <TabsTrigger value="pending" className="flex-1">
-              <Clock className="w-4 h-4 mr-2" />
+              <Clock className="w-4 h-4 mr-1" />
               {t("admin.pending")} ({pendingProviders.length})
             </TabsTrigger>
             <TabsTrigger value="approved" className="flex-1">
-              <CheckCircle2 className="w-4 h-4 mr-2" />
+              <UserCheck className="w-4 h-4 mr-1" />
               {t("admin.approved")}
+            </TabsTrigger>
+            <TabsTrigger value="delete" className="flex-1">
+              <Trash2 className="w-4 h-4 mr-1 text-destructive" />
+              <span className="text-destructive">{language === "hi" ? "हटाएं" : "Delete"}</span>
             </TabsTrigger>
           </TabsList>
 
+          {/* Pending Tab */}
           <TabsContent value="pending" className="mt-4">
-            {/* Search */}
             <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
@@ -284,7 +304,6 @@ const AdminPage = () => {
               />
             </div>
 
-            {/* Pending Providers List */}
             <div className="space-y-3">
               {filteredProviders.length === 0 ? (
                 <div className="text-center py-12">
@@ -303,9 +322,7 @@ const AdminPage = () => {
                   >
                     <Card className="p-4 shadow-card">
                       <div className="flex gap-3">
-                        <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center text-2xl shrink-0">
-                          👤
-                        </div>
+                        <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center text-2xl shrink-0">👤</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between">
                             <div>
@@ -318,7 +335,6 @@ const AdminPage = () => {
                               {new Date(provider.created_at).toLocaleDateString()}
                             </span>
                           </div>
-
                           <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <Phone className="w-3 h-3" />
@@ -331,7 +347,6 @@ const AdminPage = () => {
                               </div>
                             )}
                           </div>
-
                           <div className="flex gap-2 mt-3">
                             <Button
                               size="sm"
@@ -360,6 +375,7 @@ const AdminPage = () => {
             </div>
           </TabsContent>
 
+          {/* Approved Tab */}
           <TabsContent value="approved" className="mt-4">
             <div className="text-center py-12">
               <UserCheck className="w-12 h-12 text-primary mx-auto mb-4" />
@@ -369,6 +385,89 @@ const AdminPage = () => {
                   : `${stats?.totalProviders || 0} approved service providers`}
               </p>
             </div>
+          </TabsContent>
+
+          {/* Delete Tab */}
+          <TabsContent value="delete" className="mt-4">
+            {!deleteCategory ? (
+              <div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {language === "hi" ? "केटेगरी चुनें जिसकी प्रोफ़ाइल हटानी है:" : "Select category to delete profiles:"}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {allCategories
+                    .filter((cat) => categoriesWithProviders.includes(cat.id))
+                    .map((cat) => {
+                      const count = allApproved.filter((p) => p.category === cat.id).length;
+                      return (
+                        <Card
+                          key={cat.id}
+                          className="p-3 shadow-card cursor-pointer hover:shadow-elevated transition-shadow border-destructive/20"
+                          onClick={() => setDeleteCategory(cat.id)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{cat.icon}</span>
+                            <div>
+                              <p className="text-sm font-medium">{language === "hi" ? cat.hi : cat.en}</p>
+                              <p className="text-xs text-muted-foreground">{count} {language === "hi" ? "प्रोफ़ाइल" : "profiles"}</p>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  {categoriesWithProviders.length === 0 && (
+                    <div className="col-span-2 text-center py-8">
+                      <p className="text-muted-foreground">
+                        {language === "hi" ? "कोई अनुमोदित प्रोफ़ाइल नहीं" : "No approved profiles"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDeleteCategory(null)}
+                  className="mb-4"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  {language === "hi" ? "वापस" : "Back"}
+                </Button>
+
+                <h3 className="font-semibold mb-3 text-destructive">
+                  {getCategoryName(deleteCategory, language)} - {language === "hi" ? "प्रोफ़ाइल हटाएं" : "Delete Profiles"}
+                </h3>
+
+                <div className="space-y-3">
+                  {categoryProviders.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">
+                      {language === "hi" ? "कोई प्रोफ़ाइल नहीं" : "No profiles"}
+                    </p>
+                  ) : (
+                    categoryProviders.map((provider) => (
+                      <Card key={provider.id} className="p-4 shadow-card">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium">{provider.name}</h4>
+                            <p className="text-xs text-muted-foreground">{provider.phone} • {provider.city}</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteProvider(provider.id, provider.name)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            {language === "hi" ? "हटाएं" : "Delete"}
+                          </Button>
+                        </div>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
