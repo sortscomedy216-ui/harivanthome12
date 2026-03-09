@@ -133,7 +133,7 @@ const AdminPage = () => {
     : [];
 
   // Get categories that have approved providers
-  const categoriesWithProviders = [...new Set(allApproved.map((p) => p.category))];
+  const categoriesWithProviders: string[] = [...new Set(allApproved.map((p) => p.category as string))];
 
   if (authLoading) {
     return (
