@@ -16,8 +16,8 @@ import AuthPage from "./pages/AuthPage";
 import InstallPage from "./pages/InstallPage";
 import ProfilePage from "./pages/ProfilePage";
 import AboutPage from "./pages/AboutPage";
+import UserProfileSetup from "./pages/UserProfileSetup";
 import NotFound from "./pages/NotFound";
-import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import OfflineIndicator from "./components/OfflineIndicator";
 
 const queryClient = new QueryClient();
@@ -34,6 +34,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<SplashScreen />} />
                 <Route path="/home" element={<HomePage />} />
+                <Route path="/setup-profile" element={<UserProfileSetup />} />
                 <Route path="/providers/:category" element={<ProvidersListPage />} />
                 <Route path="/provider/:id" element={<ProviderDetailPage />} />
                 <Route path="/register-provider" element={<ProviderRegistrationPage />} />
@@ -42,10 +43,8 @@ const App = () => (
                 <Route path="/install" element={<InstallPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/about" element={<AboutPage />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
-              {/* PWAInstallPrompt removed - not needed */}
               <OfflineIndicator />
             </BrowserRouter>
           </TooltipProvider>

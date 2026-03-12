@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -9,23 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  Search,
-  MapPin,
-  Star,
-  ChevronRight,
-  Home as HomeIcon,
-  User,
-  Plus,
-  Settings,
-  Navigation,
+  Search, MapPin, Star, ChevronRight, Home as HomeIcon, User, Plus, Settings, Navigation,
 } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { allCategories, getCategoryIcon, getCategoryName } from "@/config/categories";
+import LoginPrompt from "@/components/LoginPrompt";
 
 const APP_VERSION = "1.0.0";
 
@@ -33,11 +23,31 @@ const HomePage = () => {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
   const { city } = useAppLocation();
-  const { user } = useAuth();
+  const { user, profileComplete, loading } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [tapCount, setTapCount] = useState(0);
   const [lastTapTime, setLastTapTime] = useState(0);
   const [showAllCategories, setShowAllCategories] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [loginShownOnce, setLoginShownOnce] = useState(false);
+
+  // Show login popup on first load if not logged in
+  useEffect(() => {
+    if (!loading && !user && !loginShownOnce) {
+      const timer = setTimeout(() => {
+        setShowLogin(true);
+        setLoginShownOnce(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, user, loginShownOnce]);
+
+  // Redirect to profile setup if logged in but profile not complete
+  useEffect(() => {
+    if (!loading && user && !profileComplete) {
+      navigate("/setup-profile", { replace: true });
+    }
+  }, [loading, user, profileComplete, navigate]);
 
   const handleTitleTap = () => {
     const now = Date.now();
@@ -47,20 +57,27 @@ const HomePage = () => {
       setTapCount((prev) => prev + 1);
     }
     setLastTapTime(now);
-
     if (tapCount + 1 >= 11) {
       setTapCount(0);
       navigate("/auth");
     }
   };
 
+  const requireAuth = (action: () => void) => {
+    if (!user) {
+      setShowLogin(true);
+      return;
+    }
+    action();
+  };
+
   const { data: providers = [], isLoading } = useProviders();
 
-  const userName = localStorage.getItem("harivant-username") || "";
+  const userName = localStorage.getItem("harivant-username") || user?.user_metadata?.full_name || "";
   const gpsVillage = localStorage.getItem("harivant-gps-village") || "";
 
   const handleCategoryClick = (categoryId: string) => {
-    navigate(`/providers/${categoryId}`);
+    requireAuth(() => navigate(`/providers/${categoryId}`));
   };
 
   const handleProviderClick = (providerId: string) => {
@@ -96,18 +113,14 @@ const HomePage = () => {
             <div className="flex items-center gap-1 text-primary-foreground/80 text-sm">
               <MapPin className="w-4 h-4" />
               <span>
-                {userName ? `${userName}` : ""} 
+                {userName ? `${userName}` : ""}
                 {gpsVillage ? ` • ${gpsVillage}` : city ? ` • ${city}` : ""}
               </span>
             </div>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-primary-foreground hover:bg-primary-foreground/10"
-              >
+              <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10">
                 <Settings className="w-6 h-6" />
               </Button>
             </DropdownMenuTrigger>
@@ -119,7 +132,6 @@ const HomePage = () => {
           </DropdownMenu>
         </div>
 
-        {/* Search Bar */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
@@ -137,12 +149,10 @@ const HomePage = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-lg">{t("home.categories")}</h2>
             <Button
-              variant="ghost"
-              size="sm"
-              className="text-primary text-xs"
+              variant="ghost" size="sm" className="text-primary text-xs"
               onClick={() => setShowAllCategories(!showAllCategories)}
             >
-              {showAllCategories 
+              {showAllCategories
                 ? (language === "hi" ? "कम दिखाएं" : "Show Less")
                 : (language === "hi" ? "सभी देखें" : "View All")}
               <ChevronRight className={`w-4 h-4 ml-1 transition-transform ${showAllCategories ? "rotate-90" : ""}`} />
@@ -193,9 +203,6 @@ const HomePage = () => {
                 <p className="text-muted-foreground">
                   {language === "hi" ? "कोई सेवा प्रदाता नहीं मिला" : "No service providers found"}
                 </p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {language === "hi" ? "जल्द ही उपलब्ध होंगे!" : "Coming soon!"}
-                </p>
               </div>
             ) : (
               topProviders.map((provider, index) => (
@@ -216,13 +223,11 @@ const HomePage = () => {
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <h3 className="font-semibold">{provider.name}</h3>
-                          <span
-                            className={`text-xs px-2 py-1 rounded-full ${
-                              provider.available
-                                ? "bg-secondary/10 text-secondary"
-                                : "bg-destructive/10 text-destructive"
-                            }`}
-                          >
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            provider.available
+                              ? "bg-secondary/10 text-secondary"
+                              : "bg-destructive/10 text-destructive"
+                          }`}>
                             {provider.available ? t("provider.available") : t("provider.unavailable")}
                           </span>
                         </div>
@@ -233,9 +238,7 @@ const HomePage = () => {
                           <div className="flex items-center gap-1">
                             <Star className="w-4 h-4 text-accent fill-accent" />
                             <span className="text-sm font-medium">{Number(provider.rating).toFixed(1)}</span>
-                            <span className="text-xs text-muted-foreground">
-                              ({provider.review_count})
-                            </span>
+                            <span className="text-xs text-muted-foreground">({provider.review_count})</span>
                           </div>
                           {provider.distance !== null && (
                             <span className="flex items-center gap-1 text-xs text-primary font-medium">
@@ -256,7 +259,6 @@ const HomePage = () => {
           </div>
         </div>
 
-        {/* App Version */}
         <div className="text-center py-4">
           <p className="text-xs text-muted-foreground">
             {language === "hi" ? "हरिवंत" : "Harivant"} v{APP_VERSION}
@@ -272,23 +274,24 @@ const HomePage = () => {
             <span className="text-xs">{t("nav.home")}</span>
           </Button>
           <Button
-            variant="ghost"
-            size="icon"
+            variant="ghost" size="icon"
             className="w-12 h-12 rounded-full gradient-primary text-primary-foreground shadow-elevated"
-            onClick={() => navigate("/register-provider")}
+            onClick={() => requireAuth(() => navigate("/register-provider"))}
           >
             <Plus className="w-6 h-6" />
           </Button>
           <Button
             variant="ghost"
             className="flex flex-col items-center gap-1 h-auto py-2 text-muted-foreground"
-            onClick={() => navigate("/profile")}
+            onClick={() => requireAuth(() => navigate("/profile"))}
           >
             <User className="w-5 h-5" />
             <span className="text-xs">{t("nav.profile")}</span>
           </Button>
         </div>
       </div>
+
+      <LoginPrompt open={showLogin} onClose={() => setShowLogin(false)} />
     </div>
   );
 };

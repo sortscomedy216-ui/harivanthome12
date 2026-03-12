@@ -14,36 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_assets: {
+        Row: {
+          asset_key: string
+          asset_url: string | null
+          asset_value: string | null
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          asset_key: string
+          asset_url?: string | null
+          asset_value?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          asset_key?: string
+          asset_url?: string | null
+          asset_value?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           city: string | null
           created_at: string
+          district: string | null
           id: string
           language: string | null
+          latitude: number | null
+          longitude: number | null
           name: string
           phone: string | null
+          photo_url: string | null
+          pincode: string | null
+          profile_complete: boolean | null
+          state: string | null
+          surname: string | null
+          taluka: string | null
           updated_at: string
           user_id: string
+          village: string | null
         }
         Insert: {
           city?: string | null
           created_at?: string
+          district?: string | null
           id?: string
           language?: string | null
+          latitude?: number | null
+          longitude?: number | null
           name: string
           phone?: string | null
+          photo_url?: string | null
+          pincode?: string | null
+          profile_complete?: boolean | null
+          state?: string | null
+          surname?: string | null
+          taluka?: string | null
           updated_at?: string
           user_id: string
+          village?: string | null
         }
         Update: {
           city?: string | null
           created_at?: string
+          district?: string | null
           id?: string
           language?: string | null
+          latitude?: number | null
+          longitude?: number | null
           name?: string
           phone?: string | null
+          photo_url?: string | null
+          pincode?: string | null
+          profile_complete?: boolean | null
+          state?: string | null
+          surname?: string | null
+          taluka?: string | null
           updated_at?: string
           user_id?: string
+          village?: string | null
         }
         Relationships: []
       }
