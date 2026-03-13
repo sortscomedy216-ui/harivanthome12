@@ -1,12 +1,26 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Home, Wrench, Zap } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const SplashScreen = () => {
   const navigate = useNavigate();
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    // Fetch admin-set splash logo
+    supabase
+      .from("app_assets")
+      .select("asset_url")
+      .eq("asset_key", "splash_logo")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.asset_url && data.asset_url !== "default") {
+          setLogoUrl(data.asset_url);
+        }
+      });
+
     const timer = setTimeout(() => navigate("/home", { replace: true }), 2500);
     return () => clearTimeout(timer);
   }, [navigate]);
@@ -19,8 +33,12 @@ const SplashScreen = () => {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="relative"
       >
-        <div className="w-32 h-32 rounded-3xl gradient-primary flex items-center justify-center shadow-elevated">
-          <Home className="w-16 h-16 text-primary-foreground" />
+        <div className="w-32 h-32 rounded-3xl gradient-primary flex items-center justify-center shadow-elevated overflow-hidden">
+          {logoUrl ? (
+            <img src={logoUrl} alt="Harivant" className="w-full h-full object-cover" />
+          ) : (
+            <Home className="w-16 h-16 text-primary-foreground" />
+          )}
         </div>
         <motion.div
           initial={{ scale: 0 }}
