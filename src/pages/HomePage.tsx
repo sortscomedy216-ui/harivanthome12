@@ -178,8 +178,12 @@ const HomePage = () => {
                 className="flex flex-col items-center cursor-pointer"
                 onClick={() => handleCategoryClick(category.id)}
               >
-                <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center text-2xl mb-2 transition-transform hover:scale-110">
-                  {category.icon}
+                <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-2 transition-transform hover:scale-110 overflow-hidden">
+                  {categoryAssets[category.id] ? (
+                    <img src={categoryAssets[category.id]} alt={category.en} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-2xl">{category.icon}</span>
+                  )}
                 </div>
                 <span className="text-xs text-center font-medium text-foreground line-clamp-2 leading-tight">
                   {language === "hi" ? category.hi : category.en}
