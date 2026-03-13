@@ -34,6 +34,7 @@ const App = () => (
       <LocationProvider>
         <AuthProvider>
           <TooltipProvider>
+            <AppContent />
             <Toaster />
             <Sonner position="top-center" />
             <BrowserRouter>
