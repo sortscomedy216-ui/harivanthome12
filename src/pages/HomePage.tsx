@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { allCategories, getCategoryIcon, getCategoryName } from "@/config/categories";
 import LoginPrompt from "@/components/LoginPrompt";
+import { useCategoryAssets } from "@/hooks/useCategoryAssets";
 
 const APP_VERSION = "1.0.0";
 
