@@ -43,10 +43,17 @@ const HomePage = () => {
     }
   }, [loading, user, loginShownOnce]);
 
-  // Redirect to profile setup if logged in but profile not complete
+  // Redirect to profile setup ONLY once if logged in but profile not complete
   useEffect(() => {
     if (!loading && user && !profileComplete) {
-      navigate("/setup-profile", { replace: true });
+      const alreadyRedirected = sessionStorage.getItem("profile-setup-redirected");
+      if (!alreadyRedirected) {
+        sessionStorage.setItem("profile-setup-redirected", "true");
+        navigate("/setup-profile", { replace: true });
+      }
+    }
+    if (profileComplete) {
+      sessionStorage.removeItem("profile-setup-redirected");
     }
   }, [loading, user, profileComplete, navigate]);
 
