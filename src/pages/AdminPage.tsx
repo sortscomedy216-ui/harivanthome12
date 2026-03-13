@@ -383,6 +383,36 @@ const AdminPage = () => {
                   </label>
                 </div>
               </Card>
+
+              {/* App Icon */}
+              <h3 className="font-semibold mt-6">{language === "hi" ? "ऐप आइकन बदलें" : "Change App Icon"}</h3>
+              <p className="text-xs text-muted-foreground mb-2">
+                {language === "hi" ? "ब्राउज़र टैब का favicon हर 30 सेकंड में auto-refresh होगा" : "Browser tab favicon auto-refreshes every 30 seconds"}
+              </p>
+              <Card className="p-4 shadow-card">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center overflow-hidden border-2 border-primary/20">
+                    {appAssets.find(a => a.asset_key === "app_icon")?.asset_url ? (
+                      <img src={appAssets.find(a => a.asset_key === "app_icon")!.asset_url!} alt="App Icon" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-3xl">📱</span>
+                    )}
+                  </div>
+                  <label className="cursor-pointer">
+                    <Button variant="outline" size="sm" asChild>
+                      <span>
+                        {uploadingAsset === "app_icon" ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
+                        {language === "hi" ? "आइकन बदलें" : "Change Icon"}
+                      </span>
+                    </Button>
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleAssetUpload("app_icon", file);
+                      }} />
+                  </label>
+                </div>
+              </Card>
             </div>
           </TabsContent>
         </Tabs>
