@@ -17,6 +17,7 @@ import {
 import { allCategories, getCategoryIcon, getCategoryName } from "@/config/categories";
 import LoginPrompt from "@/components/LoginPrompt";
 import { useCategoryAssets } from "@/hooks/useCategoryAssets";
+import { useDynamicFavicon } from "@/hooks/useDynamicFavicon";
 
 const APP_VERSION = "1.0.0";
 
