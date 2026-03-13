@@ -19,8 +19,14 @@ import AboutPage from "./pages/AboutPage";
 import UserProfileSetup from "./pages/UserProfileSetup";
 import NotFound from "./pages/NotFound";
 import OfflineIndicator from "./components/OfflineIndicator";
+import { useDynamicFavicon } from "./hooks/useDynamicFavicon";
 
 const queryClient = new QueryClient();
+
+const AppContent = () => {
+  useDynamicFavicon();
+  return null;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
