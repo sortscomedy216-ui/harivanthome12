@@ -26,6 +26,7 @@ const HomePage = () => {
   const { t, language } = useLanguage();
   const { city } = useAppLocation();
   const { user, profileComplete, loading } = useAuth();
+  useDynamicFavicon();
   const [searchQuery, setSearchQuery] = useState("");
   const [tapCount, setTapCount] = useState(0);
   const [lastTapTime, setLastTapTime] = useState(0);
