@@ -17,7 +17,6 @@ import {
 import { allCategories, getCategoryIcon, getCategoryName } from "@/config/categories";
 import LoginPrompt from "@/components/LoginPrompt";
 import { useCategoryAssets } from "@/hooks/useCategoryAssets";
-import { useDynamicFavicon } from "@/hooks/useDynamicFavicon";
 
 const APP_VERSION = "1.0.0";
 
@@ -26,7 +25,6 @@ const HomePage = () => {
   const { t, language } = useLanguage();
   const { city } = useAppLocation();
   const { user, profileComplete, loading } = useAuth();
-  useDynamicFavicon();
   const [searchQuery, setSearchQuery] = useState("");
   const [tapCount, setTapCount] = useState(0);
   const [lastTapTime, setLastTapTime] = useState(0);
