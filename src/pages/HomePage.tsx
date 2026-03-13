@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { allCategories, getCategoryIcon, getCategoryName } from "@/config/categories";
 import LoginPrompt from "@/components/LoginPrompt";
+import { useCategoryAssets } from "@/hooks/useCategoryAssets";
 
 const APP_VERSION = "1.0.0";
 
@@ -42,10 +43,17 @@ const HomePage = () => {
     }
   }, [loading, user, loginShownOnce]);
 
-  // Redirect to profile setup if logged in but profile not complete
+  // Redirect to profile setup ONLY once if logged in but profile not complete
   useEffect(() => {
     if (!loading && user && !profileComplete) {
-      navigate("/setup-profile", { replace: true });
+      const alreadyRedirected = sessionStorage.getItem("profile-setup-redirected");
+      if (!alreadyRedirected) {
+        sessionStorage.setItem("profile-setup-redirected", "true");
+        navigate("/setup-profile", { replace: true });
+      }
+    }
+    if (profileComplete) {
+      sessionStorage.removeItem("profile-setup-redirected");
     }
   }, [loading, user, profileComplete, navigate]);
 
@@ -72,6 +80,7 @@ const HomePage = () => {
   };
 
   const { data: providers = [], isLoading } = useProviders();
+  const { data: categoryAssets = {} } = useCategoryAssets();
 
   const userName = localStorage.getItem("harivant-username") || user?.user_metadata?.full_name || "";
   const gpsVillage = localStorage.getItem("harivant-gps-village") || "";
@@ -169,8 +178,12 @@ const HomePage = () => {
                 className="flex flex-col items-center cursor-pointer"
                 onClick={() => handleCategoryClick(category.id)}
               >
-                <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center text-2xl mb-2 transition-transform hover:scale-110">
-                  {category.icon}
+                <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-2 transition-transform hover:scale-110 overflow-hidden">
+                  {categoryAssets[category.id] ? (
+                    <img src={categoryAssets[category.id]} alt={category.en} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-2xl">{category.icon}</span>
+                  )}
                 </div>
                 <span className="text-xs text-center font-medium text-foreground line-clamp-2 leading-tight">
                   {language === "hi" ? category.hi : category.en}
