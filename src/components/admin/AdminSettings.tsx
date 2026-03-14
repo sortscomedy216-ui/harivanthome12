@@ -22,11 +22,10 @@ const AdminSettings = ({ language, userId }: Props) => {
     queryKey: ["app-assets"],
     queryFn: async () => {
       const { data } = await supabase.from("app_assets").select("*");
-      return data || [];
-    },
-    onSuccess: (data: any[]) => {
-      const nameAsset = data.find((a: any) => a.asset_key === "app_name");
+      const items = data || [];
+      const nameAsset = items.find((a) => a.asset_key === "app_name");
       if (nameAsset?.asset_value) setAppName(nameAsset.asset_value);
+      return items;
     },
   });
 
