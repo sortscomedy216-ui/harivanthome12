@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          details: string | null
+          id: string
+          target_id: string | null
+          target_name: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          target_id?: string | null
+          target_name?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          target_id?: string | null
+          target_name?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
+      admin_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          read: boolean
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean
+          title: string
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
       app_assets: {
         Row: {
           asset_key: string
@@ -38,6 +98,36 @@ export type Database = {
           id?: string
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      areas: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          district: string | null
+          enabled: boolean
+          id: string
+          name: string
+          state: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          district?: string | null
+          enabled?: boolean
+          id?: string
+          name: string
+          state?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          district?: string | null
+          enabled?: boolean
+          id?: string
+          name?: string
+          state?: string | null
         }
         Relationships: []
       }
@@ -142,10 +232,14 @@ export type Database = {
       service_providers: {
         Row: {
           about: string | null
+          area: string | null
           available: boolean | null
+          blacklisted: boolean | null
           category: Database["public"]["Enums"]["service_category"]
           city: string
           created_at: string
+          disable_reason: string | null
+          disabled: boolean | null
           email: string | null
           experience: number | null
           id: string
@@ -166,10 +260,14 @@ export type Database = {
         }
         Insert: {
           about?: string | null
+          area?: string | null
           available?: boolean | null
+          blacklisted?: boolean | null
           category: Database["public"]["Enums"]["service_category"]
           city: string
           created_at?: string
+          disable_reason?: string | null
+          disabled?: boolean | null
           email?: string | null
           experience?: number | null
           id?: string
@@ -190,10 +288,14 @@ export type Database = {
         }
         Update: {
           about?: string | null
+          area?: string | null
           available?: boolean | null
+          blacklisted?: boolean | null
           category?: Database["public"]["Enums"]["service_category"]
           city?: string
           created_at?: string
+          disable_reason?: string | null
+          disabled?: boolean | null
           email?: string | null
           experience?: number | null
           id?: string
