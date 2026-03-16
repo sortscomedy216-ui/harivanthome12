@@ -80,7 +80,7 @@ const HomePage = () => {
   };
 
   const { data: providers = [], isLoading } = useProviders();
-  const { data: categoryAssets = {} } = useCategoryAssets();
+  const categoryAssets = useOfflineCategoryAssets();
 
   const userName = localStorage.getItem("harivant-username") || user?.user_metadata?.full_name || "";
   const gpsVillage = localStorage.getItem("harivant-gps-village") || "";
