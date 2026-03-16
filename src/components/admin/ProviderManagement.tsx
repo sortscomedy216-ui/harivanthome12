@@ -238,6 +238,15 @@ const ProviderManagement = ({ language, userId, defaultStatus = "all" }: Props) 
             ))}
           </SelectContent>
         </Select>
+        <Select value={areaFilter} onValueChange={setAreaFilter}>
+          <SelectTrigger className="h-8 text-xs flex-1"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{language === "hi" ? "सभी क्षेत्र" : "All Areas"}</SelectItem>
+            {areas.map((area: any) => (
+              <SelectItem key={area.id} value={area.name}>{area.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Provider List */}
