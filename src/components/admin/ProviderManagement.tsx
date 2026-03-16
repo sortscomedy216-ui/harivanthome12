@@ -19,10 +19,11 @@ import { motion } from "framer-motion";
 interface Props {
   language: "hi" | "en";
   userId: string;
+  defaultStatus?: string;
 }
 
-const ProviderManagement = ({ language, userId }: Props) => {
-  const [statusFilter, setStatusFilter] = useState("all");
+const ProviderManagement = ({ language, userId, defaultStatus = "all" }: Props) => {
+  const [statusFilter, setStatusFilter] = useState(defaultStatus);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [areaFilter, setAreaFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
