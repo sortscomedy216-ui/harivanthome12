@@ -252,16 +252,17 @@ const ProviderManagement = ({ language, userId, defaultStatus = "all" }: Props) 
               <Card className={`p-3 shadow-card cursor-pointer active:scale-[0.98] transition-transform ${provider.blacklisted ? "border-destructive/50 bg-destructive/5" : provider.disabled ? "border-orange-300/50 bg-orange-50/50" : ""}`}
                 onClick={() => setSelectedProvider(provider)}>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
-                    {provider.photo_url ? <img src={provider.photo_url} alt="" className="w-full h-full object-cover" /> : <User className="w-5 h-5 text-muted-foreground" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-semibold truncate">{provider.name}</h4>
-                      {getStatusBadge(provider)}
-                    </div>
-                    <p className="text-xs text-muted-foreground">{getCategoryName(provider.category, language)} • {provider.phone}</p>
-                    <p className="text-xs text-muted-foreground">{provider.city} • {new Date(provider.created_at).toLocaleDateString("hi-IN")}</p>
+              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                     {provider.photo_url ? <img src={provider.photo_url} alt="" className="w-full h-full object-cover" /> : <User className="w-5 h-5 text-muted-foreground" />}
+                   </div>
+                   <div className="flex-1 min-w-0">
+                     <div className="flex items-center justify-between">
+                       <h4 className="text-sm font-semibold truncate">{provider.name}</h4>
+                       {getStatusBadge(provider)}
+                     </div>
+                     <p className="text-[10px] text-muted-foreground font-mono">ID: {provider.id.substring(0, 8)}</p>
+                     <p className="text-xs text-muted-foreground">{getCategoryName(provider.category, language)} • {provider.phone}</p>
+                     <p className="text-xs text-muted-foreground">{provider.city}{provider.area ? ` • ${provider.area}` : ""} • {new Date(provider.created_at).toLocaleDateString("hi-IN")}</p>
                   </div>
                   <Eye className="w-4 h-4 text-muted-foreground shrink-0" />
                 </div>
