@@ -110,7 +110,7 @@ const AdminPage = () => {
     switch (activeSection) {
       case "dashboard": return <AdminStats language={language} />;
       case "providers": return <ProviderManagement language={language} userId={user.id} />;
-      case "pending": return <ProviderManagement language={language} userId={user.id} />;
+      case "pending": return <ProviderManagement language={language} userId={user.id} defaultStatus="pending" />;
       case "categories": return <CategoryManagement language={language} userId={user.id} />;
       case "areas": return <AreaManagement language={language} userId={user.id} />;
       case "notifications": return <AdminNotifications language={language} />;

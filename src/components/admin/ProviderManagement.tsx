@@ -154,6 +154,7 @@ const ProviderManagement = ({ language, userId, defaultStatus = "all" }: Props) 
             </div>
           </div>
           <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-muted-foreground" /><span className="text-xs font-mono">ID: {selectedProvider.id.substring(0, 8)}</span></div>
             <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-muted-foreground" /><span>{selectedProvider.phone}</span></div>
             <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-muted-foreground" /><span>{getCategoryName(selectedProvider.category, language)}</span></div>
             <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-muted-foreground" /><span>{selectedProvider.city}{selectedProvider.area ? ` • ${selectedProvider.area}` : ""}</span></div>
