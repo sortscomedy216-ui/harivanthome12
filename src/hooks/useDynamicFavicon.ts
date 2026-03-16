@@ -1,35 +1,22 @@
 import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useOfflineAssets } from "./useOfflineAssets";
 
 export const useDynamicFavicon = () => {
-  const { data: faviconUrl } = useQuery({
-    queryKey: ["app-favicon"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("app_assets")
-        .select("asset_url")
-        .eq("asset_key", "app_icon")
-        .maybeSingle();
-      return data?.asset_url || null;
-    },
-    staleTime: 30000,
-    refetchInterval: 30000,
-  });
+  const { appIcon } = useOfflineAssets();
 
   useEffect(() => {
-    if (!faviconUrl) return;
-    
-    // Update all favicon links
+    if (!appIcon) return;
+
+    // Update all favicon links with cached base64 data
     const selectors = [
       'link[rel="icon"]',
       'link[rel="shortcut icon"]',
       'link[rel="apple-touch-icon"]',
     ];
-    
+
     selectors.forEach((sel) => {
       document.querySelectorAll(sel).forEach((el) => {
-        (el as HTMLLinkElement).href = faviconUrl;
+        (el as HTMLLinkElement).href = appIcon;
       });
     });
 
@@ -37,8 +24,8 @@ export const useDynamicFavicon = () => {
     if (!document.querySelector('link[rel="icon"]')) {
       const link = document.createElement("link");
       link.rel = "icon";
-      link.href = faviconUrl;
+      link.href = appIcon;
       document.head.appendChild(link);
     }
-  }, [faviconUrl]);
+  }, [appIcon]);
 };
