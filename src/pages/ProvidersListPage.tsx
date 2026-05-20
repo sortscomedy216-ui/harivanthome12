@@ -25,6 +25,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { getCategoryById, getCategoryName, getCategoryIcon } from "@/config/categories";
+import ProviderMiniMap from "@/components/ProviderMiniMap";
 
 const ProvidersListPage = () => {
   const { category } = useParams<{ category: string }>();
