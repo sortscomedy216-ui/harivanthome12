@@ -282,21 +282,3 @@ const ProvidersListPage = () => {
 };
 
 export default ProvidersListPage;
-                        </Button>
-                        <Button size="sm" className="h-8">
-                          {t("provider.book")}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default ProvidersListPage;
