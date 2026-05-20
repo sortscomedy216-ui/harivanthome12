@@ -25,6 +25,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { getCategoryById, getCategoryName, getCategoryIcon } from "@/config/categories";
+import ProviderMiniMap from "@/components/ProviderMiniMap";
 
 const ProvidersListPage = () => {
   const { category } = useParams<{ category: string }>();
@@ -259,6 +260,18 @@ const ProvidersListPage = () => {
                     </div>
                   </div>
                 </div>
+
+                {coordinates && provider.latitude && provider.longitude && (
+                  <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+                    <ProviderMiniMap
+                      userLat={coordinates.latitude}
+                      userLng={coordinates.longitude}
+                      providerLat={Number(provider.latitude)}
+                      providerLng={Number(provider.longitude)}
+                      providerName={provider.name}
+                    />
+                  </div>
+                )}
               </Card>
             </motion.div>
           ))

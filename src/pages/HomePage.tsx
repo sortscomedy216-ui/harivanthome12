@@ -25,7 +25,7 @@ const HomePage = () => {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
   const { city } = useAppLocation();
-  const { user, profileComplete, loading } = useAuth();
+  const { user, profileComplete, profileChecked, loading } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [tapCount, setTapCount] = useState(0);
   const [lastTapTime, setLastTapTime] = useState(0);
@@ -44,19 +44,12 @@ const HomePage = () => {
     }
   }, [loading, user, loginShownOnce]);
 
-  // Redirect to profile setup ONLY once if logged in but profile not complete
+  // Redirect to profile setup only after DB has been checked AND profile is incomplete
   useEffect(() => {
-    if (!loading && user && !profileComplete) {
-      const alreadyRedirected = sessionStorage.getItem("profile-setup-redirected");
-      if (!alreadyRedirected) {
-        sessionStorage.setItem("profile-setup-redirected", "true");
-        navigate("/setup-profile", { replace: true });
-      }
+    if (!loading && user && profileChecked && !profileComplete) {
+      navigate("/setup-profile", { replace: true });
     }
-    if (profileComplete) {
-      sessionStorage.removeItem("profile-setup-redirected");
-    }
-  }, [loading, user, profileComplete, navigate]);
+  }, [loading, user, profileChecked, profileComplete, navigate]);
 
   const handleTitleTap = () => {
     const now = Date.now();
