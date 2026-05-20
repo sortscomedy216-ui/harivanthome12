@@ -260,6 +260,36 @@ const ProvidersListPage = () => {
                     </div>
                   </div>
                 </div>
+
+                {coordinates && provider.latitude && provider.longitude && (
+                  <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+                    <ProviderMiniMap
+                      userLat={coordinates.latitude}
+                      userLng={coordinates.longitude}
+                      providerLat={Number(provider.latitude)}
+                      providerLng={Number(provider.longitude)}
+                      providerName={provider.name}
+                    />
+                  </div>
+                )}
+              </Card>
+            </motion.div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ProvidersListPage;
+                        </Button>
+                        <Button size="sm" className="h-8">
+                          {t("provider.book")}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </Card>
             </motion.div>
           ))
