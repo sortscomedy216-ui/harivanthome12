@@ -24,7 +24,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [profileComplete, setProfileComplete] = useState(false);
+  const [profileComplete, setProfileCompleteState] = useState<boolean>(() => {
+    return localStorage.getItem("harivant-profile-complete") === "true";
+  });
+  const [profileChecked, setProfileChecked] = useState(false);
+
+  const setProfileComplete = (val: boolean) => {
+    setProfileCompleteState(val);
+    if (val) localStorage.setItem("harivant-profile-complete", "true");
+    else localStorage.removeItem("harivant-profile-complete");
+  };
 
   const checkProfile = async (userId: string) => {
     const { data } = await supabase
@@ -32,7 +41,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .select("profile_complete")
       .eq("user_id", userId)
       .maybeSingle();
-    setProfileComplete(!!data?.profile_complete);
+    const complete = !!data?.profile_complete;
+    setProfileCompleteState(complete);
+    if (complete) localStorage.setItem("harivant-profile-complete", "true");
+    else localStorage.removeItem("harivant-profile-complete");
+    setProfileChecked(true);
   };
 
   useEffect(() => {
@@ -54,7 +67,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setTimeout(() => checkProfile(session.user.id), 0);
       } else {
         setIsAdmin(false);
-        setProfileComplete(false);
+        setProfileCompleteState(false);
+        setProfileChecked(true);
       }
       
       setLoading(false);
@@ -65,6 +79,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       if (session?.user) {
         checkProfile(session.user.id);
+      } else {
+        setProfileChecked(true);
       }
       setLoading(false);
     });
