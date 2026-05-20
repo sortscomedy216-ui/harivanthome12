@@ -133,6 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         isAdmin,
         profileComplete,
+        profileChecked,
         signInWithGoogle,
         signInWithEmail,
         signUpWithEmail,
