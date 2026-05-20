@@ -9,6 +9,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   profileComplete: boolean;
+  profileChecked: boolean;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signInWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUpWithEmail: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
