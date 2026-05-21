@@ -243,6 +243,8 @@ export type Database = {
           email: string | null
           experience: number | null
           id: string
+          is_online: boolean
+          last_location_update: string | null
           latitude: number | null
           location: string | null
           longitude: number | null
@@ -271,6 +273,8 @@ export type Database = {
           email?: string | null
           experience?: number | null
           id?: string
+          is_online?: boolean
+          last_location_update?: string | null
           latitude?: number | null
           location?: string | null
           longitude?: number | null
@@ -299,6 +303,8 @@ export type Database = {
           email?: string | null
           experience?: number | null
           id?: string
+          is_online?: boolean
+          last_location_update?: string | null
           latitude?: number | null
           location?: string | null
           longitude?: number | null
