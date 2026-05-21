@@ -10,6 +10,7 @@ import SplashScreen from "./pages/SplashScreen";
 import HomePage from "./pages/HomePage";
 import ProvidersListPage from "./pages/ProvidersListPage";
 import ProviderDetailPage from "./pages/ProviderDetailPage";
+import LiveTrackPage from "./pages/LiveTrackPage";
 import ProviderRegistrationPage from "./pages/ProviderRegistrationPage";
 import AdminPage from "./pages/AdminPage";
 import AuthPage from "./pages/AuthPage";
@@ -44,6 +45,7 @@ const App = () => (
                 <Route path="/setup-profile" element={<UserProfileSetup />} />
                 <Route path="/providers/:category" element={<ProvidersListPage />} />
                 <Route path="/provider/:id" element={<ProviderDetailPage />} />
+                <Route path="/track/:id" element={<LiveTrackPage />} />
                 <Route path="/register-provider" element={<ProviderRegistrationPage />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/auth" element={<AuthPage />} />

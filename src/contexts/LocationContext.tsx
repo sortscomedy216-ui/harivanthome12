@@ -123,11 +123,28 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [coordinates]
   );
 
-  // Auto-request location on mount if not already set
+  // Continuous high-accuracy live tracking via watchPosition.
   useEffect(() => {
-    if (!coordinates) {
-      requestLocation();
-    }
+    if (!navigator.geolocation) return;
+    const wid = navigator.geolocation.watchPosition(
+      (position) => {
+        if (position.coords.accuracy > 150) return; // reject low-accuracy fixes
+        const coords = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+        setCoordinates(coords);
+        localStorage.setItem("harivant-coordinates", JSON.stringify(coords));
+        setLocationError(null);
+      },
+      () => {
+        // silent — initial requestLocation surfaces errors
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+    );
+    if (!coordinates) requestLocation();
+    return () => navigator.geolocation.clearWatch(wid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isLocationSet = !!city;
