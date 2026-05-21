@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getCategoryName } from "@/config/categories";
+import WorkerLiveToggle from "@/components/WorkerLiveToggle";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -210,6 +211,9 @@ const ProfilePage = () => {
                       <span className="font-medium">{provider.city}</span>
                     </div>
                   </div>
+                  {provider.status === "approved" && (
+                    <WorkerLiveToggle providerId={provider.id} initialOnline={!!provider.is_online} />
+                  )}
                   <Button
                     variant="destructive" size="sm" className="w-full mt-3"
                     onClick={() => handleDeleteProfile(provider.id)}
