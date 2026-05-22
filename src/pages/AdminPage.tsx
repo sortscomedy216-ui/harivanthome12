@@ -12,7 +12,7 @@ import {
   ArrowLeft, Shield, Loader2,
   LayoutDashboard, Users, Grid3X3, MapPin, Clock, Bell,
   BarChart3, FileText, Download, ShieldAlert, Settings, UserCog,
-  LogOut,
+  LogOut, Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -28,8 +28,9 @@ import AdminLogs from "@/components/admin/AdminLogs";
 import AdminSettings from "@/components/admin/AdminSettings";
 import AdminExport from "@/components/admin/AdminExport";
 import AntiFraud from "@/components/admin/AntiFraud";
+import BannerManagement from "@/components/admin/BannerManagement";
 
-type AdminSection = "dashboard" | "providers" | "categories" | "areas" | "pending" | "notifications" | "reports" | "logs" | "settings" | "export" | "fraud" | "roles";
+type AdminSection = "dashboard" | "providers" | "categories" | "areas" | "pending" | "notifications" | "reports" | "logs" | "settings" | "export" | "fraud" | "roles" | "banners";
 
 const AdminPage = () => {
   const navigate = useNavigate();
@@ -121,6 +122,7 @@ const AdminPage = () => {
     { id: "providers", label: language === "hi" ? "प्रदाता" : "Providers", icon: Users },
     { id: "pending", label: language === "hi" ? "लंबित" : "Pending", icon: Clock, badge: badgeCounts?.pending },
     { id: "categories", label: language === "hi" ? "श्रेणी" : "Categories", icon: Grid3X3 },
+    { id: "banners", label: language === "hi" ? "बैनर" : "Banners", icon: ImageIcon },
     { id: "areas", label: language === "hi" ? "क्षेत्र" : "Areas", icon: MapPin },
     { id: "notifications", label: language === "hi" ? "सूचनाएं" : "Alerts", icon: Bell, badge: badgeCounts?.unread },
     { id: "reports", label: language === "hi" ? "रिपोर्ट" : "Reports", icon: BarChart3 },
@@ -137,6 +139,7 @@ const AdminPage = () => {
       case "providers": return <ProviderManagement language={language} userId={user.id} />;
       case "pending": return <ProviderManagement language={language} userId={user.id} defaultStatus="pending" />;
       case "categories": return <CategoryManagement language={language} userId={user.id} />;
+      case "banners": return <BannerManagement language={language} userId={user.id} />;
       case "areas": return <AreaManagement language={language} userId={user.id} />;
       case "notifications": return <AdminNotifications language={language} />;
       case "reports": return <AdminReports language={language} />;
