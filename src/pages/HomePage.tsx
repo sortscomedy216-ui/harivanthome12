@@ -4,19 +4,19 @@ import { motion } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation as useAppLocation } from "@/contexts/LocationContext";
-import { useProviders } from "@/hooks/useProviders";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  Search, MapPin, Star, ChevronRight, Home as HomeIcon, User, Plus, Settings, Navigation,
+  Search, MapPin, ChevronRight, Home as HomeIcon, User, Plus, Settings,
   Mail,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { allCategories, getCategoryIcon, getCategoryName } from "@/config/categories";
+import { allCategories } from "@/config/categories";
 import LoginPrompt from "@/components/LoginPrompt";
+import BannerSlider from "@/components/BannerSlider";
 import { useOfflineCategoryAssets } from "@/hooks/useOfflineAssets";
 
 const APP_VERSION = "1.0.0";
@@ -73,7 +73,6 @@ const HomePage = () => {
     action();
   };
 
-  const { data: providers = [], isLoading } = useProviders();
   const categoryAssets = useOfflineCategoryAssets();
 
   const userName = localStorage.getItem("harivant-username") || user?.user_metadata?.full_name || "";
@@ -83,17 +82,12 @@ const HomePage = () => {
     requireAuth(() => navigate(`/providers/${categoryId}`));
   };
 
-  const handleProviderClick = (providerId: string) => {
-    navigate(`/provider/${providerId}`);
-  };
-
   const filteredCategories = allCategories.filter((cat) => {
     const name = language === "hi" ? cat.hi : cat.en;
     return name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   const displayCategories = showAllCategories ? filteredCategories : filteredCategories.slice(0, 12);
-  const topProviders = providers.slice(0, 5);
 
   const formatDistance = (distance: number | null): string => {
     if (distance === null) return "";
