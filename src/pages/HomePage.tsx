@@ -181,80 +181,8 @@ const HomePage = () => {
           </div>
         </Card>
 
-        {/* Top Providers - hidden when none found */}
-        {(isLoading || topProviders.length > 0) && (
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="font-semibold text-lg">{t("home.topProviders")}</h2>
-                <p className="text-sm text-muted-foreground">{t("home.nearYou")}</p>
-              </div>
-            </div>
 
-            <div className="space-y-3">
-              {isLoading ? (
-                <div className="flex justify-center py-8">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full"
-                  />
-                </div>
-              ) : (
-                topProviders.map((provider, index) => (
-                  <motion.div
-                    key={provider.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <Card
-                      className="p-4 shadow-card cursor-pointer hover:shadow-elevated transition-shadow"
-                      onClick={() => handleProviderClick(provider.id)}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center text-3xl">
-                          {getCategoryIcon(provider.category)}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-semibold">{provider.name}</h3>
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              provider.available
-                                ? "bg-secondary/10 text-secondary"
-                                : "bg-destructive/10 text-destructive"
-                            }`}>
-                              {provider.available ? t("provider.available") : t("provider.unavailable")}
-                            </span>
-                          </div>
-                          <p className="text-sm text-muted-foreground capitalize">
-                            {getCategoryName(provider.category, language)}
-                          </p>
-                          <div className="flex items-center gap-4 mt-2">
-                            <div className="flex items-center gap-1">
-                              <Star className="w-4 h-4 text-accent fill-accent" />
-                              <span className="text-sm font-medium">{Number(provider.rating).toFixed(1)}</span>
-                              <span className="text-xs text-muted-foreground">({provider.review_count})</span>
-                            </div>
-                            {provider.distance !== null && (
-                              <span className="flex items-center gap-1 text-xs text-primary font-medium">
-                                <Navigation className="w-3 h-3" />
-                                {formatDistance(provider.distance)}
-                              </span>
-                            )}
-                            <span className="text-xs text-muted-foreground">
-                              {provider.experience} {t("provider.years")}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  </motion.div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
+
 
 
 
