@@ -89,11 +89,6 @@ const HomePage = () => {
 
   const displayCategories = showAllCategories ? filteredCategories : filteredCategories.slice(0, 12);
 
-  const formatDistance = (distance: number | null): string => {
-    if (distance === null) return "";
-    if (distance < 1) return `${Math.round(distance * 1000)} m`;
-    return `${distance.toFixed(1)} km`;
-  };
 
   return (
     <div className="min-h-screen bg-background pb-20 select-none">
@@ -141,6 +136,8 @@ const HomePage = () => {
       </div>
 
       <div className="px-4 -mt-4">
+        {/* Promo Banner Slider */}
+        <BannerSlider />
         {/* Categories Grid */}
         <Card className="p-4 shadow-card mb-6">
           <div className="flex items-center justify-between mb-4">
