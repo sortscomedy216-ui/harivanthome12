@@ -155,11 +155,10 @@ const ProvidersListPage = () => {
           </div>
         ) : filteredProviders.length === 0 ? (
           <div className="text-center py-12">
-            {categoryIconUrl ? (
+            {categoryIconUrl && (
               <img src={categoryIconUrl} alt="" className="w-16 h-16 rounded-2xl mx-auto mb-4 object-cover" />
-            ) : (
-              <div className="text-4xl mb-4">{categoryInfo?.icon || "🔍"}</div>
             )}
+
             <p className="text-muted-foreground">
               {language === "hi" ? "कोई सेवा प्रदाता नहीं मिला" : "No providers found"}
             </p>
