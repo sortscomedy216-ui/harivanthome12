@@ -69,14 +69,8 @@ const AdminPage = () => {
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">{language === "hi" ? "लोड हो रहा है..." : "Loading..."}</p>
-      </div>
-    );
-  }
+  // Don't block the whole screen — let the login form appear immediately
+  // so admin panel feels instant. The form itself disables while signing in.
 
   if (!user || !isAdmin) {
     return (

@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { getCategoryById } from "@/config/categories";
 import ProviderMiniMap from "@/components/ProviderMiniMap";
+import { useOfflineCategoryAssets } from "@/hooks/useOfflineAssets";
 
 const ProvidersListPage = () => {
   const { category } = useParams<{ category: string }>();
@@ -40,6 +41,8 @@ const ProvidersListPage = () => {
 
   const { providers: allProviders, isLoading } = useLiveProviders(category);
   const categoryInfo = category ? getCategoryById(category) : null;
+  const categoryAssets = useOfflineCategoryAssets();
+  const categoryIconUrl = category ? categoryAssets[category] : null;
 
   const filteredProviders = allProviders
     .filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -65,8 +68,12 @@ const ProvidersListPage = () => {
             <ArrowLeft className="w-6 h-6" />
           </Button>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary-foreground/20 flex items-center justify-center text-xl">
-              {categoryInfo?.icon || "🔍"}
+            <div className="w-10 h-10 rounded-xl bg-primary-foreground/20 flex items-center justify-center text-xl overflow-hidden">
+              {categoryIconUrl ? (
+                <img src={categoryIconUrl} alt={categoryInfo?.en || ""} className="w-full h-full object-cover" />
+              ) : (
+                <span>{categoryInfo?.icon || "🔍"}</span>
+              )}
             </div>
             <div>
               <h1 className="text-xl font-bold text-primary-foreground">
@@ -148,7 +155,11 @@ const ProvidersListPage = () => {
           </div>
         ) : filteredProviders.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-4xl mb-4">{categoryInfo?.icon || "🔍"}</div>
+            {categoryIconUrl ? (
+              <img src={categoryIconUrl} alt="" className="w-16 h-16 rounded-2xl mx-auto mb-4 object-cover" />
+            ) : (
+              <div className="text-4xl mb-4">{categoryInfo?.icon || "🔍"}</div>
+            )}
             <p className="text-muted-foreground">
               {language === "hi" ? "कोई सेवा प्रदाता नहीं मिला" : "No providers found"}
             </p>
