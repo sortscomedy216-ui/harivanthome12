@@ -93,16 +93,16 @@ const HomePage = () => {
   return (
     <div className="min-h-screen bg-background pb-20 select-none">
       {/* Header */}
-      <div className="gradient-primary px-4 pt-6 pb-8 safe-top">
+      <div className="bg-background px-4 pt-6 pb-4 safe-top">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1
-              className="text-2xl font-bold text-primary-foreground cursor-default"
+              className="text-2xl font-bold text-foreground cursor-default"
               onClick={handleTitleTap}
             >
               {t("app.name")}
             </h1>
-            <div className="flex items-center gap-1 text-primary-foreground/80 text-sm">
+            <div className="flex items-center gap-1 text-muted-foreground text-sm">
               <MapPin className="w-4 h-4" />
               <span>
                 {userName ? `${userName}` : ""}
@@ -112,7 +112,7 @@ const HomePage = () => {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary-foreground/10">
+              <Button variant="ghost" size="icon" className="text-foreground hover:bg-muted">
                 <Settings className="w-6 h-6" />
               </Button>
             </DropdownMenuTrigger>
@@ -130,12 +130,13 @@ const HomePage = () => {
             placeholder={t("home.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-12 bg-background border-0 rounded-xl shadow-card"
+            className="pl-10 h-12 bg-card border border-border rounded-xl shadow-card"
           />
         </div>
       </div>
 
-      <div className="px-4 -mt-4">
+      <div className="px-4 mt-4">
+
         {/* Promo Banner Slider */}
         <BannerSlider />
         {/* Categories Grid */}
