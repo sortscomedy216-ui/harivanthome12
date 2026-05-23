@@ -92,8 +92,9 @@ const ProvidersListPage = () => {
             placeholder={language === "hi" ? "नाम से खोजें..." : "Search by name..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-11 bg-background border-0 rounded-xl"
+            className="pl-10 h-11 bg-card border border-border rounded-xl"
           />
+
         </div>
       </div>
 
