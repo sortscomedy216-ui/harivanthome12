@@ -57,34 +57,33 @@ const ProvidersListPage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="gradient-primary px-4 pt-4 pb-6 safe-top">
+      <div className="bg-background px-4 pt-4 pb-4 safe-top border-b border-border">
         <div className="flex items-center gap-3 mb-4">
           <Button
             variant="ghost"
             size="icon"
-            className="text-primary-foreground hover:bg-primary-foreground/10"
+            className="text-foreground hover:bg-muted"
             onClick={() => navigate(-1)}
           >
             <ArrowLeft className="w-6 h-6" />
           </Button>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary-foreground/20 flex items-center justify-center text-xl overflow-hidden">
-              {categoryIconUrl ? (
+            <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+              {categoryIconUrl && (
                 <img src={categoryIconUrl} alt={categoryInfo?.en || ""} className="w-full h-full object-cover" />
-              ) : (
-                <span>{categoryInfo?.icon || "🔍"}</span>
               )}
             </div>
             <div>
-              <h1 className="text-xl font-bold text-primary-foreground">
+              <h1 className="text-xl font-bold text-foreground">
                 {categoryInfo ? (language === "hi" ? categoryInfo.hi : categoryInfo.en) : category}
               </h1>
-              <p className="text-sm text-primary-foreground/80">
+              <p className="text-sm text-muted-foreground">
                 {filteredProviders.length} {language === "hi" ? "सेवा प्रदाता" : "providers"}
               </p>
             </div>
           </div>
         </div>
+
 
         {/* Search */}
         <div className="relative">
@@ -93,8 +92,9 @@ const ProvidersListPage = () => {
             placeholder={language === "hi" ? "नाम से खोजें..." : "Search by name..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-11 bg-background border-0 rounded-xl"
+            className="pl-10 h-11 bg-card border border-border rounded-xl"
           />
+
         </div>
       </div>
 
@@ -155,11 +155,10 @@ const ProvidersListPage = () => {
           </div>
         ) : filteredProviders.length === 0 ? (
           <div className="text-center py-12">
-            {categoryIconUrl ? (
+            {categoryIconUrl && (
               <img src={categoryIconUrl} alt="" className="w-16 h-16 rounded-2xl mx-auto mb-4 object-cover" />
-            ) : (
-              <div className="text-4xl mb-4">{categoryInfo?.icon || "🔍"}</div>
             )}
+
             <p className="text-muted-foreground">
               {language === "hi" ? "कोई सेवा प्रदाता नहीं मिला" : "No providers found"}
             </p>
