@@ -164,9 +164,13 @@ const HomePage = () => {
                 className="flex flex-col items-center cursor-pointer"
                 onClick={() => handleCategoryClick(category.id)}
               >
-                <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-2 transition-transform hover:scale-110 overflow-hidden">
-                  {categoryAssets[category.id] && (
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-2 transition-transform hover:scale-110 overflow-hidden">
+                  {categoryAssets[category.id] ? (
                     <img src={categoryAssets[category.id]} alt={category.en} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full animate-pulse bg-muted flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-lg bg-muted-foreground/20" />
+                    </div>
                   )}
                 </div>
 
