@@ -34,7 +34,7 @@ const setCachedAssets = (assets: CachedAssets) => {
 // Convert image URL to base64 data URI for true offline support
 const urlToBase64 = async (url: string): Promise<string | null> => {
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { cache: "no-store" });
     const blob = await response.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
