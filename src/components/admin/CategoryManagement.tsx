@@ -38,13 +38,27 @@ const CategoryManagement = ({ language, userId }: Props) => {
   const handleAssetUpload = async (assetKey: string, file: File) => {
     setUploadingAsset(assetKey);
     try {
-      const path = `categories/${assetKey}.${file.name.split(".").pop()}`;
-      await supabase.storage.from("app-assets").upload(path, file, { upsert: true });
+      const ext = file.name.split(".").pop() || "jpg";
+      // Versioned path to fully bypass CDN/browser/SW cache
+      const version = Date.now();
+      const path = `categories/${assetKey}_${version}.${ext}`;
+      await supabase.storage.from("app-assets").upload(path, file, { upsert: true, cacheControl: "3600" });
       const { data: urlData } = supabase.storage.from("app-assets").getPublicUrl(path);
-      await supabase.from("app_assets").upsert({ asset_key: assetKey, asset_url: urlData.publicUrl, updated_at: new Date().toISOString(), updated_by: userId }, { onConflict: "asset_key" });
+      // Append version query as extra cache-bust safeguard
+      const bustedUrl = `${urlData.publicUrl}?v=${version}`;
+      await supabase.from("app_assets").upsert({ asset_key: assetKey, asset_url: bustedUrl, updated_at: new Date().toISOString(), updated_by: userId }, { onConflict: "asset_key" });
       await supabase.from("admin_logs").insert({ admin_id: userId, action: "Category Icon Updated", target_type: "category", target_id: assetKey, target_name: assetKey });
-      queryClient.invalidateQueries({ queryKey: ["app-assets"] });
-      queryClient.invalidateQueries({ queryKey: ["category-assets"] });
+      // Clear local offline cache for this category so new icon shows immediately
+      try {
+        const cached = JSON.parse(localStorage.getItem("harivant-cat-assets") || "{}");
+        const catId = assetKey.replace("cat_", "");
+        delete cached[catId];
+        delete cached[`_url_${catId}`];
+        localStorage.setItem("harivant-cat-assets", JSON.stringify(cached));
+      } catch { /* ignore */ }
+      await queryClient.invalidateQueries({ queryKey: ["app-assets"] });
+      await queryClient.invalidateQueries({ queryKey: ["category-assets"] });
+      await queryClient.refetchQueries({ queryKey: ["category-assets"] });
       toast.success(language === "hi" ? "आइकन अपडेट किया!" : "Icon updated!");
     } catch (err: any) {
       toast.error(err.message || "Upload failed");
