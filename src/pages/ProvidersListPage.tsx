@@ -68,9 +68,13 @@ const ProvidersListPage = () => {
             <ArrowLeft className="w-6 h-6" />
           </Button>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
-              {categoryIconUrl && (
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden">
+              {categoryIconUrl ? (
                 <img src={categoryIconUrl} alt={categoryInfo?.en || ""} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full animate-pulse bg-muted flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-md bg-muted-foreground/20" />
+                </div>
               )}
             </div>
             <div>
@@ -155,8 +159,12 @@ const ProvidersListPage = () => {
           </div>
         ) : filteredProviders.length === 0 ? (
           <div className="text-center py-12">
-            {categoryIconUrl && (
+            {categoryIconUrl ? (
               <img src={categoryIconUrl} alt="" className="w-16 h-16 rounded-2xl mx-auto mb-4 object-cover" />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl mx-auto mb-4 animate-pulse bg-muted flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-muted-foreground/20" />
+              </div>
             )}
 
             <p className="text-muted-foreground">
@@ -178,10 +186,14 @@ const ProvidersListPage = () => {
                   onClick={() => navigate(`/provider/${provider.id}`)}
                 >
                   <div className="flex gap-4">
-                    <div className="relative w-20 h-20 rounded-xl bg-muted flex items-center justify-center text-4xl shrink-0">
+                    <div className="relative w-20 h-20 rounded-xl flex items-center justify-center shrink-0">
                       {provider.photo_url ? (
                         <img src={provider.photo_url} alt={provider.name} className="w-full h-full object-cover rounded-xl" />
-                      ) : "👤"}
+                      ) : (
+                        <div className="w-full h-full rounded-xl animate-pulse bg-muted flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-muted-foreground/20" />
+                        </div>
+                      )}
                       {live && (
                         <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-2 border-background animate-pulse" />
                       )}
