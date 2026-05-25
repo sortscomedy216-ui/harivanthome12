@@ -1,73 +1,52 @@
-# Welcome to your Lovable project
+# Harivant
 
-## Project info
+Harivant is a mobile-first home-services app built with React, Vite, TypeScript, Tailwind CSS, and Lovable Cloud.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Code structure
 
-## How can I edit this code?
+- `src/` — frontend app code, pages, components, hooks, and API calls
+- `src/integrations/supabase/` — generated client used by the app to call the backend
+- `supabase/migrations/` — backend database schema, policies, and data migrations
+- `public/` — app icons, PWA assets, static files, and Netlify redirects
+- `netlify.toml` — Netlify build, publish, headers, and SPA routing config
+- `vercel.json` — Vercel SPA routing and cache headers
 
-There are several ways of editing your application.
+## Local setup
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Use Node.js 20.
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Production build
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```sh
+npm run build
+```
 
-**Use GitHub Codespaces**
+Build output folder: `dist`
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Netlify hosting
 
-## What technologies are used for this project?
+- Build command: `npm run build`
+- Publish directory: `dist`
+- Node version: `20`
 
-This project is built with:
+## Vercel hosting
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- Framework preset: `Vite`
+- Build command: `npm run build`
+- Output directory: `dist`
+- Node version: `20`
 
-## How can I deploy this project?
+## Required environment variables
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+Add these variables in the hosting platform if they are not already present:
 
-## Can I connect a custom domain to my Lovable project?
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+- `VITE_SUPABASE_PROJECT_ID`
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Do not upload `node_modules`; hosting platforms install dependencies from `package.json` and `package-lock.json`.
