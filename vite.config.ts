@@ -55,22 +55,6 @@ export default defineConfig(({ mode }) => ({
             purpose: "maskable",
           },
         ],
-        screenshots: [
-          {
-            src: "/screenshots/home.png",
-            sizes: "1080x1920",
-            type: "image/png",
-            form_factor: "narrow",
-            label: "Home screen showing service categories",
-          },
-          {
-            src: "/screenshots/providers.png",
-            sizes: "1080x1920",
-            type: "image/png",
-            form_factor: "narrow",
-            label: "Service providers list with distance",
-          },
-        ],
         shortcuts: [
           {
             name: "Find Plumber",
